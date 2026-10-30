@@ -7,7 +7,32 @@ import {
   buildPosterUrl
 } from './data.js';
 
-const STORAGE_KEY = 'omnilog_state_auth_gated_v2';
+const STORAGE_KEY = 'omnilog_state_auth_gated_v3';
+const AUTH_TOKEN_STORAGE_KEY = 'omnilog_session_token';
+
+function getSavedSessionToken() {
+  try {
+    return localStorage.getItem(AUTH_TOKEN_STORAGE_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+async function apiFetch(url, options = {}) {
+  const headers = {
+    'X-Omnilog-Client': 'browser',
+    ...(options.headers || {})
+  };
+  const savedToken = getSavedSessionToken();
+  if (savedToken && !headers.Authorization) {
+    headers.Authorization = `Bearer ${savedToken}`;
+  }
+  return fetch(url, {
+    ...options,
+    credentials: 'same-origin',
+    headers
+  });
+}
 
 let state = {
   currentUserId: null,
@@ -412,20 +437,28 @@ async function syncWithServer() {
   try {
     localStorage.removeItem('omnilog_state_v1');
     localStorage.removeItem('omnilog_state_clean_v1');
+    localStorage.removeItem('omnilog_state_auth_gated_v2');
   } catch {
     // ignore storage access issues
   }
+  const hasBrowserToken = Boolean(getSavedSessionToken());
   try {
-    const res = await fetch('/api/state');
+    const res = await apiFetch('/api/state', { cache: 'no-store' });
     if (res.ok) {
       const serverState = await res.json();
       if (serverState && Array.isArray(serverState.catalog)) {
         serverState.catalog = upgradeCatalogPosters(serverState.catalog);
+        if (!hasBrowserToken) {
+          serverState.currentUserId = null;
+          serverState.watchlist = [];
+          serverState.authUser = null;
+        }
         upgradeUsersAndSocialGraph(serverState);
         upgradeInProgressLogs(serverState);
         state = serverState;
-        if (!state.currentUserId || !state.users?.[state.currentUserId]) {
+        if (!hasBrowserToken || !state.currentUserId || !state.users?.[state.currentUserId]) {
           state.currentUserId = null;
+          state.watchlist = [];
           uiState.isSignedOut = true;
           try {
             localStorage.removeItem('omnilog_session_token');
@@ -450,6 +483,10 @@ async function syncWithServer() {
       const parsed = JSON.parse(cached);
       if (parsed && Array.isArray(parsed.catalog)) {
         parsed.catalog = upgradeCatalogPosters(parsed.catalog);
+        if (!hasBrowserToken) {
+          parsed.currentUserId = null;
+          parsed.watchlist = [];
+        }
         upgradeUsersAndSocialGraph(parsed);
         upgradeInProgressLogs(parsed);
         state = parsed;
@@ -2289,7 +2326,7 @@ async function handleSaveLog(event) {
   showToast(`Logged "${mediaItem.title}" (${formatStars(rating)}) to your Diary!`);
 
   try {
-    const res = await fetch('/api/logs', {
+    const res = await apiFetch('/api/logs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ log: logEntry, mediaItem })
@@ -2346,7 +2383,7 @@ async function handleToggleWatchlist(mediaId) {
   }
 
   try {
-    await fetch('/api/watchlist/toggle', {
+    await apiFetch('/api/watchlist/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mediaId: targetId, mediaItem })
@@ -2368,7 +2405,7 @@ async function handleLikeLog(logId) {
   renderActivityFeed();
 
   try {
-    await fetch(`/api/logs/${encodeURIComponent(logId)}/like`, { method: 'POST' });
+    await apiFetch(`/api/logs/${encodeURIComponent(logId)}/like`, { method: 'POST' });
   } catch {
     // persisted locally
   }
@@ -2397,7 +2434,7 @@ async function handlePostComment(logId, text) {
   showToast('Comment posted!');
 
   try {
-    await fetch(`/api/logs/${encodeURIComponent(logId)}/comments`, {
+    await apiFetch(`/api/logs/${encodeURIComponent(logId)}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: text.trim() })
@@ -2421,7 +2458,7 @@ async function handleDeleteLog(logId) {
   showToast('Diary entry deleted.');
 
   try {
-    await fetch(`/api/logs/${encodeURIComponent(logId)}`, { method: 'DELETE' });
+    await apiFetch(`/api/logs/${encodeURIComponent(logId)}`, { method: 'DELETE' });
   } catch {
     // persisted locally
   }
@@ -2504,7 +2541,7 @@ async function handleBumpProgress(logId, action) {
   renderAll();
 
   try {
-    await fetch(`/api/logs/${encodeURIComponent(logId)}/progress`, {
+    await apiFetch(`/api/logs/${encodeURIComponent(logId)}/progress`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, delta: action === 'increment_pages' ? 25 : 1 })
@@ -2598,7 +2635,7 @@ async function handleStartTracking(mediaId) {
   );
 
   try {
-    const res = await fetch('/api/currently-tracking', {
+    const res = await apiFetch('/api/currently-tracking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mediaId: mediaItem.id, mediaItem, progress: defaultProgress })
@@ -2667,7 +2704,7 @@ async function handleCreateList(event) {
   showToast(existingIdx >= 0 ? `Updated custom list "${title}"!` : `Created custom list "${title}"!`);
 
   try {
-    await fetch(existingIdx >= 0 ? `/api/lists/${encodeURIComponent(editId)}` : '/api/lists', {
+    await apiFetch(existingIdx >= 0 ? `/api/lists/${encodeURIComponent(editId)}` : '/api/lists', {
       method: existingIdx >= 0 ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(savedList)
@@ -2687,7 +2724,7 @@ async function handleDeleteList(listId) {
   showToast('Custom list deleted.');
 
   try {
-    await fetch(`/api/lists/${encodeURIComponent(listId)}`, { method: 'DELETE' });
+    await apiFetch(`/api/lists/${encodeURIComponent(listId)}`, { method: 'DELETE' });
   } catch {
     // persisted locally
   }
@@ -2722,7 +2759,7 @@ async function handleSaveFavoriteSlot(event) {
     showToast('Updated Top 4 Favorite showcase!');
 
     try {
-      await fetch('/api/profile', {
+      await apiFetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ favorites: user.favorites })
@@ -2753,13 +2790,20 @@ async function handleSwitchUser(userId) {
   showToast(`Switched active profile to ${targetUser.name} (${targetUser.handle})!`);
 
   try {
-    const res = await fetch('/api/users/switch', {
+    const res = await apiFetch('/api/users/switch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId })
     });
     if (res.ok) {
       const data = await res.json();
+      if (data.sessionToken || data.token) {
+        try {
+          localStorage.setItem('omnilog_session_token', data.sessionToken || data.token);
+        } catch {
+          // ignore
+        }
+      }
       if (data.state && data.state.users) {
         state = data.state;
         upgradeUsersAndSocialGraph();
@@ -2792,7 +2836,7 @@ async function handleToggleFollow(targetUserId) {
   renderAll();
 
   try {
-    const res = await fetch(`/api/users/${encodeURIComponent(targetUserId)}/follow`, {
+    const res = await apiFetch(`/api/users/${encodeURIComponent(targetUserId)}/follow`, {
       method: 'POST'
     });
     if (res.ok) {
@@ -2950,10 +2994,7 @@ export function validateAndAdvanceSignupStep(fromStep = uiState.signupStep || 1)
 
 async function refreshActiveAuthDetails() {
   try {
-    const headers = {};
-    const savedToken = localStorage.getItem('omnilog_session_token');
-    if (savedToken) headers.Authorization = `Bearer ${savedToken}`;
-    const res = await fetch('/api/auth/me', { headers });
+    const res = await apiFetch('/api/auth/me');
     if (res.ok) {
       const data = await res.json();
       if (data.authUser) {
@@ -3192,7 +3233,7 @@ async function handleSaveUserProfile(event) {
     showToast(`Updated profile for ${name}!`);
 
     try {
-      const res = await fetch(`/api/users/${encodeURIComponent(editId)}`, {
+      const res = await apiFetch(`/api/users/${encodeURIComponent(editId)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, handle, location, avatarColor, avatar, bio })
@@ -3230,7 +3271,7 @@ async function handleSaveUserProfile(event) {
     }
 
     try {
-      const res = await fetch('/api/auth/signup', {
+      const res = await apiFetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3323,7 +3364,7 @@ async function handleSaveUserProfile(event) {
   showToast(`Created profile for ${name} (${handle}) and switched active account!`);
 
   try {
-    const res = await fetch('/api/users', {
+    const res = await apiFetch('/api/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -3339,6 +3380,13 @@ async function handleSaveUserProfile(event) {
     });
     if (res.ok) {
       const data = await res.json();
+      if (data.sessionToken || data.token) {
+        try {
+          localStorage.setItem('omnilog_session_token', data.sessionToken || data.token);
+        } catch {
+          // ignore
+        }
+      }
       if (data.state && data.state.users) {
         state = data.state;
         upgradeUsersAndSocialGraph();
@@ -3364,7 +3412,7 @@ async function handleAuthLogin(event) {
   }
 
   try {
-    const res = await fetch('/api/auth/login', {
+    const res = await apiFetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ identifier, password })
@@ -3415,13 +3463,9 @@ async function handleUpdateCredentials(event) {
   }
 
   try {
-    const headers = { 'Content-Type': 'application/json' };
-    const savedToken = localStorage.getItem('omnilog_session_token');
-    if (savedToken) headers.Authorization = `Bearer ${savedToken}`;
-
-    const res = await fetch('/api/auth/credentials', {
+    const res = await apiFetch('/api/auth/credentials', {
       method: 'PUT',
-      headers,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         userId: state.currentUserId,
         currentPassword,
@@ -3459,10 +3503,7 @@ async function handleUpdateCredentials(event) {
 
 async function handleAuthLogout() {
   try {
-    const headers = {};
-    const savedToken = localStorage.getItem('omnilog_session_token');
-    if (savedToken) headers.Authorization = `Bearer ${savedToken}`;
-    await fetch('/api/auth/logout', { method: 'POST', headers });
+    await apiFetch('/api/auth/logout', { method: 'POST' });
   } catch {
     // ignore network error
   }
@@ -3501,7 +3542,7 @@ async function handleLetterboxdRssSync() {
   }
 
   try {
-    const res = await fetch('/api/import/letterboxd-rss', {
+    const res = await apiFetch('/api/import/letterboxd-rss', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -3581,7 +3622,7 @@ async function handleLetterboxdCsvImport() {
       if (!payload.csvText) payload.csvText = pastedCsv;
     }
 
-    const res = await fetch('/api/import/letterboxd-csv', {
+    const res = await apiFetch('/api/import/letterboxd-csv', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -3634,7 +3675,7 @@ async function handleExportDiaryCsv(requestedUserId = null) {
       : uiState.viewingUserId || state.currentUserId;
   try {
     const query = targetUserId ? `?userId=${encodeURIComponent(targetUserId)}` : '';
-    const res = await fetch(`/api/export/diary.csv${query}`);
+    const res = await apiFetch(`/api/export/diary.csv${query}`);
     if (res.ok) {
       const csvText = await res.text();
       const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
@@ -3760,7 +3801,7 @@ async function handleSaveCustomMedia(event) {
 
   let addedItem = null;
   try {
-    const res = await fetch('/api/catalog', {
+    const res = await apiFetch('/api/catalog', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -3814,7 +3855,7 @@ async function handleLiveExternalSearch() {
   if (statusEl) statusEl.textContent = `Searching iTunes Movies, TVMaze & Open Library for "${query}"...`;
 
   try {
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/search-external?q=${encodeURIComponent(query)}&type=${encodeURIComponent(uiState.exploreType)}`
     );
     const data = await res.json();

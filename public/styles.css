@@ -2911,6 +2911,117 @@ body {
   }
 }
 
+/* Strict iOS Safari Horizontal Containment & Zero-Overflow Lock */
+html,
+body {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: clip !important;
+  position: relative;
+}
+
+.site-header,
+.header-inner,
+.app-main,
+.view-section,
+.hero-banner,
+.controls-bar,
+.wood-shelf,
+.profile-header-card,
+.custom-list-block,
+.diary-table-wrapper,
+.feed-list,
+.feed-card {
+  width: 100%;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow-x: clip;
+}
+
+@media (max-width: 768px) {
+  .header-inner {
+    flex-wrap: nowrap;
+    gap: 0.45rem;
+    padding: 0.55rem 0.7rem !important;
+  }
+
+  .brand {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+
+  .brand-title-stack {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .brand-text {
+    font-size: 1.12rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-actions {
+    flex: 0 0 auto;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  .user-pill {
+    max-width: 120px;
+    padding: 0.25rem 0.45rem;
+    font-size: 0.78rem;
+  }
+
+  .hero-quick-stats {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.45rem !important;
+    width: 100% !important;
+  }
+
+  .stat-pill {
+    min-width: 0 !important;
+    padding: 0.45rem 0.5rem !important;
+  }
+
+  .card,
+  .card > header,
+  .card > div,
+  .card > footer,
+  .currently-card,
+  .feed-card {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .card > footer {
+    flex-wrap: wrap !important;
+    gap: 0.35rem !important;
+  }
+
+  .card > footer .btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-inline: 0.4rem;
+    font-size: 0.74rem;
+  }
+
+  dialog[open] {
+    width: 100% !important;
+    max-width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin-inline: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: clip !important;
+  }
+}
+
 @keyframes mobileSheetUp {
   from {
     transform: translateY(24px);

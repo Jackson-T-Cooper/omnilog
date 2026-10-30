@@ -784,11 +784,27 @@ function buildAuthUser(userId = dbState.currentUserId) {
   };
 }
 
-function buildClientStatePayload(state = dbState) {
+function buildClientStatePayload(state = dbState, activeUserId = undefined) {
   stripSensitiveUserFields(state);
+  const effectiveUserId =
+    activeUserId !== undefined
+      ? activeUserId && state.users?.[activeUserId]
+        ? activeUserId
+        : null
+      : state.currentUserId && state.users?.[state.currentUserId]
+      ? state.currentUserId
+      : null;
+  const effectiveUser = effectiveUserId ? state.users[effectiveUserId] : null;
   return {
     ...state,
-    authUser: buildAuthUser(state.currentUserId)
+    currentUserId: effectiveUserId,
+    watchlist:
+      effectiveUser && Array.isArray(effectiveUser.watchlist)
+        ? [...effectiveUser.watchlist]
+        : effectiveUserId && effectiveUserId === state.currentUserId && Array.isArray(state.watchlist)
+        ? [...state.watchlist]
+        : [],
+    authUser: buildAuthUser(effectiveUserId)
   };
 }
 
@@ -806,6 +822,26 @@ function extractSessionToken(req) {
     }
   }
   return '';
+}
+
+function resolveRequestUserId(req) {
+  const token = extractSessionToken(req);
+  const isBrowserClient = String(req.headers['x-omnilog-client'] || '').toLowerCase() === 'browser';
+  if (token) {
+    const session = authVault?.sessions?.[token];
+    if (session && session.userId && dbState?.users?.[session.userId]) {
+      return session.userId;
+    }
+    if (isBrowserClient) {
+      return null;
+    }
+  }
+  if (isBrowserClient) {
+    return null;
+  }
+  return dbState?.currentUserId && dbState?.users?.[dbState.currentUserId]
+    ? dbState.currentUserId
+    : null;
 }
 
 function createAuthSession(userId) {
@@ -1724,7 +1760,7 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Omnilog-Client'
     });
     return res.end();
   }
@@ -1825,7 +1861,8 @@ const server = http.createServer(async (req, res) => {
 
     // 2. Full state GET / POST / Reset
     if (pathname === '/api/state' && req.method === 'GET') {
-      return sendJson(res, 200, buildClientStatePayload(dbState));
+      const reqUserId = resolveRequestUserId(req);
+      return sendJson(res, 200, buildClientStatePayload(dbState, reqUserId));
     }
 
     if (pathname === '/api/state' && req.method === 'POST') {
@@ -1834,7 +1871,8 @@ const server = http.createServer(async (req, res) => {
         stripSensitiveUserFields(body);
         dbState = body;
         saveState(dbState);
-        return sendJson(res, 200, { ok: true, state: buildClientStatePayload(dbState) });
+        const reqUserId = resolveRequestUserId(req);
+        return sendJson(res, 200, { ok: true, state: buildClientStatePayload(dbState, reqUserId) });
       }
       return sendJson(res, 400, { error: 'Invalid state payload' });
     }
@@ -1844,7 +1882,7 @@ const server = http.createServer(async (req, res) => {
       authVault = getDefaultAuthVault();
       saveState(dbState);
       saveAuthVault(authVault);
-      return sendJson(res, 200, buildClientStatePayload(dbState));
+      return sendJson(res, 200, buildClientStatePayload(dbState, null));
     }
 
     // 3. External Live Search API (iTunes + TVMaze + OpenLibrary)
@@ -1911,16 +1949,18 @@ const server = http.createServer(async (req, res) => {
       };
       const upsertedItem = upsertCatalogItem(newItem);
       saveState(dbState);
+      const reqUserId = resolveRequestUserId(req);
       return sendJson(res, 201, {
         ok: true,
         item: upsertedItem || newItem,
-        state: buildClientStatePayload(dbState)
+        state: buildClientStatePayload(dbState, reqUserId)
       });
     }
 
     // 5. Create or Update LogEntry
     if (pathname === '/api/logs' && req.method === 'POST') {
-      if (!dbState.currentUserId || !dbState.users || !dbState.users[dbState.currentUserId]) {
+      const reqUserId = resolveRequestUserId(req);
+      if (!reqUserId || !dbState.users || !dbState.users[reqUserId]) {
         return sendJson(res, 401, {
           requiresAuth: true,
           error: 'Authentication required. Please sign in or sign up to log media.'
@@ -1942,6 +1982,7 @@ const server = http.createServer(async (req, res) => {
       const clampedRating = clampRating(log.rating, 4.5);
       const safeReview = String(log.review || '').slice(0, 5000);
       const safeProgress = sanitizeProgress(log.progress || { status: 'completed' }, mediaType, mediaItem);
+      const isBrowserClient = String(req.headers['x-omnilog-client'] || '').toLowerCase() === 'browser';
 
       const existingIdx = dbState.logs.findIndex((l) => l.id === log.id);
       if (existingIdx >= 0) {
@@ -1957,7 +1998,7 @@ const server = http.createServer(async (req, res) => {
       } else {
         const newLog = {
           id: log.id || generateId('log'),
-          userId: dbState.users[log.userId] ? log.userId : dbState.currentUserId,
+          userId: !isBrowserClient && dbState.users[log.userId] ? log.userId : reqUserId,
           mediaId: targetMediaId,
           mediaType,
           rating: clampedRating,
@@ -1978,16 +2019,26 @@ const server = http.createServer(async (req, res) => {
       // Recalculate dynamic communityRating and ratingsCount for this media item
       recalculateMediaStats(dbState, targetMediaId);
 
-      // Automatically remove from watchlist if logged
-      dbState.watchlist = dbState.watchlist.filter((id) => id !== targetMediaId && id !== log.mediaId);
-      syncWatchlistToActiveUser(dbState);
+      // Automatically remove from acting user's watchlist if logged
+      const activeUser = dbState.users[reqUserId];
+      if (activeUser && Array.isArray(activeUser.watchlist)) {
+        activeUser.watchlist = activeUser.watchlist.filter(
+          (id) => id !== targetMediaId && id !== log.mediaId
+        );
+      }
+      if (dbState.currentUserId === reqUserId) {
+        dbState.watchlist = dbState.watchlist.filter(
+          (id) => id !== targetMediaId && id !== log.mediaId
+        );
+      }
       saveState(dbState);
-      return sendJson(res, 201, { state: dbState });
+      return sendJson(res, 201, { state: buildClientStatePayload(dbState, reqUserId) });
     }
 
     // 6. Delete LogEntry
     if (pathname.startsWith('/api/logs/') && req.method === 'DELETE') {
-      if (!dbState.currentUserId || !dbState.users || !dbState.users[dbState.currentUserId]) {
+      const reqUserId = resolveRequestUserId(req);
+      if (!reqUserId || !dbState.users || !dbState.users[reqUserId]) {
         return sendJson(res, 401, {
           requiresAuth: true,
           error: 'Authentication required. Please sign in or sign up to modify logs.'
@@ -2000,12 +2051,13 @@ const server = http.createServer(async (req, res) => {
         recalculateMediaStats(dbState, targetLog.mediaId);
       }
       saveState(dbState);
-      return sendJson(res, 200, { state: dbState });
+      return sendJson(res, 200, { state: buildClientStatePayload(dbState, reqUserId) });
     }
 
     // 6b. One-Tap Progress Update on a LogEntry (POST /api/logs/:id/progress)
     if (pathname.startsWith('/api/logs/') && pathname.endsWith('/progress') && req.method === 'POST') {
-      if (!dbState.currentUserId || !dbState.users || !dbState.users[dbState.currentUserId]) {
+      const reqUserId = resolveRequestUserId(req);
+      if (!reqUserId || !dbState.users || !dbState.users[reqUserId]) {
         return sendJson(res, 401, {
           requiresAuth: true,
           error: 'Authentication required. Please sign in or sign up to update progress.'
@@ -2081,12 +2133,13 @@ const server = http.createServer(async (req, res) => {
       }
       log.dateConsumed = new Date().toISOString().slice(0, 10);
       saveState(dbState);
-      return sendJson(res, 200, { log, state: dbState });
+      return sendJson(res, 200, { log, state: buildClientStatePayload(dbState, reqUserId) });
     }
 
     // 6c. Start Currently Watching / Reading (POST /api/currently-tracking)
     if (pathname === '/api/currently-tracking' && req.method === 'POST') {
-      if (!dbState.currentUserId || !dbState.users || !dbState.users[dbState.currentUserId]) {
+      const reqUserId = resolveRequestUserId(req);
+      if (!reqUserId || !dbState.users || !dbState.users[reqUserId]) {
         return sendJson(res, 401, {
           requiresAuth: true,
           error: 'Authentication required. Please sign in or sign up to track media.'
@@ -2102,7 +2155,7 @@ const server = http.createServer(async (req, res) => {
       if (!mediaItem || !mediaId) {
         return sendJson(res, 400, { error: 'Valid mediaId or mediaItem required' });
       }
-      const userId = dbState.currentUserId;
+      const userId = reqUserId;
       // Only match an existing log if it is ALREADY in progress ('watching' / 'reading').
       // If the user previously completed this title, preserve that completed diary entry and create a new rewatch/reread entry!
       const activeLog = dbState.logs.find(
@@ -2156,10 +2209,17 @@ const server = http.createServer(async (req, res) => {
         };
         dbState.logs.unshift(log);
       }
-      dbState.watchlist = dbState.watchlist.filter((id) => id !== mediaId && id !== body.mediaId);
-      syncWatchlistToActiveUser(dbState);
+      const activeUser = dbState.users[userId];
+      if (activeUser && Array.isArray(activeUser.watchlist)) {
+        activeUser.watchlist = activeUser.watchlist.filter(
+          (id) => id !== mediaId && id !== body.mediaId
+        );
+      }
+      if (dbState.currentUserId === userId) {
+        dbState.watchlist = dbState.watchlist.filter((id) => id !== mediaId && id !== body.mediaId);
+      }
       saveState(dbState);
-      return sendJson(res, 201, { log, state: dbState });
+      return sendJson(res, 201, { log, state: buildClientStatePayload(dbState, reqUserId) });
     }
 
     // 7. Like / Unlike a LogEntry
@@ -2170,7 +2230,8 @@ const server = http.createServer(async (req, res) => {
       log.likedByMe = !log.likedByMe;
       log.likesCount = Math.max(0, (log.likesCount || 0) + (log.likedByMe ? 1 : -1));
       saveState(dbState);
-      return sendJson(res, 200, { log, state: dbState });
+      const reqUserId = resolveRequestUserId(req);
+      return sendJson(res, 200, { log, state: buildClientStatePayload(dbState, reqUserId) });
     }
 
     // 8. Comment on a LogEntry
@@ -2181,11 +2242,13 @@ const server = http.createServer(async (req, res) => {
       const body = await parseBody(req);
       const text = String(body.text || '').trim().slice(0, 1000);
       if (!text) return sendJson(res, 400, { error: 'Comment text required' });
-      const currentUser = dbState.users[dbState.currentUserId] || {
-        id: 'user-jackson',
-        name: 'Jackson Cooper',
-        handle: '@jackson'
-      };
+      const reqUserId = resolveRequestUserId(req);
+      const currentUser = (reqUserId && dbState.users[reqUserId]) ||
+        dbState.users[dbState.currentUserId] || {
+          id: 'user-jackson',
+          name: 'Jackson Cooper',
+          handle: '@jackson'
+        };
       const comment = {
         id: generateId('c'),
         userId: currentUser.id,
@@ -2197,12 +2260,13 @@ const server = http.createServer(async (req, res) => {
       log.comments = Array.isArray(log.comments) ? log.comments : [];
       log.comments.push(comment);
       saveState(dbState);
-      return sendJson(res, 201, { comment, state: dbState });
+      return sendJson(res, 201, { comment, state: buildClientStatePayload(dbState, reqUserId) });
     }
 
     // 9. Toggle Watchlist / Reading Queue
     if (pathname === '/api/watchlist/toggle' && req.method === 'POST') {
-      if (!dbState.currentUserId || !dbState.users || !dbState.users[dbState.currentUserId]) {
+      const reqUserId = resolveRequestUserId(req);
+      if (!reqUserId || !dbState.users || !dbState.users[reqUserId]) {
         return sendJson(res, 401, {
           requiresAuth: true,
           error: 'Authentication required. Please sign in or sign up to update your Watchlist.'
@@ -2215,15 +2279,23 @@ const server = http.createServer(async (req, res) => {
       }
       const mediaId = upserted?.id || body.mediaId || body.mediaItem?.id;
       if (!mediaId) return sendJson(res, 400, { error: 'mediaId required' });
-      const exists = dbState.watchlist.includes(mediaId);
+      const activeUser = dbState.users[reqUserId];
+      activeUser.watchlist = Array.isArray(activeUser.watchlist) ? activeUser.watchlist : [];
+      const exists = activeUser.watchlist.includes(mediaId);
       if (exists) {
-        dbState.watchlist = dbState.watchlist.filter((id) => id !== mediaId);
+        activeUser.watchlist = activeUser.watchlist.filter((id) => id !== mediaId);
       } else {
-        dbState.watchlist.unshift(mediaId);
+        activeUser.watchlist.unshift(mediaId);
       }
-      syncWatchlistToActiveUser(dbState);
+      if (dbState.currentUserId === reqUserId) {
+        dbState.watchlist = [...activeUser.watchlist];
+      }
       saveState(dbState);
-      return sendJson(res, 200, { added: !exists, mediaId, state: dbState });
+      return sendJson(res, 200, {
+        added: !exists,
+        mediaId,
+        state: buildClientStatePayload(dbState, reqUserId)
+      });
     }
 
     // 10. Create / Update Custom List (POST /api/lists or PUT /api/lists/:id)
@@ -2231,7 +2303,8 @@ const server = http.createServer(async (req, res) => {
       (pathname === '/api/lists' && req.method === 'POST') ||
       (pathname.startsWith('/api/lists/') && req.method === 'PUT')
     ) {
-      if (!dbState.currentUserId || !dbState.users || !dbState.users[dbState.currentUserId]) {
+      const reqUserId = resolveRequestUserId(req);
+      if (!reqUserId || !dbState.users || !dbState.users[reqUserId]) {
         return sendJson(res, 401, {
           requiresAuth: true,
           error: 'Authentication required. Please sign in or sign up to create or edit lists.'
@@ -2271,12 +2344,12 @@ const server = http.createServer(async (req, res) => {
         saveState(dbState);
         return sendJson(res, req.method === 'PUT' ? 200 : 201, {
           list: dbState.lists[existingIdx],
-          state: dbState
+          state: buildClientStatePayload(dbState, reqUserId)
         });
       } else {
         const created = {
           id: targetId || generateId('list'),
-          userId: dbState.currentUserId,
+          userId: reqUserId,
           title: String(body.title).trim().slice(0, 200),
           description: String(body.description || '').trim().slice(0, 1000),
           isRanked: Boolean(body.isRanked),
@@ -2286,13 +2359,14 @@ const server = http.createServer(async (req, res) => {
         };
         dbState.lists.unshift(created);
         saveState(dbState);
-        return sendJson(res, 201, { list: created, state: dbState });
+        return sendJson(res, 201, { list: created, state: buildClientStatePayload(dbState, reqUserId) });
       }
     }
 
     // 11. Delete Custom List
     if (pathname.startsWith('/api/lists/') && req.method === 'DELETE') {
-      if (!dbState.currentUserId || !dbState.users || !dbState.users[dbState.currentUserId]) {
+      const reqUserId = resolveRequestUserId(req);
+      if (!reqUserId || !dbState.users || !dbState.users[reqUserId]) {
         return sendJson(res, 401, {
           requiresAuth: true,
           error: 'Authentication required. Please sign in or sign up to delete lists.'
@@ -2301,19 +2375,20 @@ const server = http.createServer(async (req, res) => {
       const listId = decodeURIComponent(pathname.split('/')[3] || '');
       dbState.lists = dbState.lists.filter((l) => l.id !== listId);
       saveState(dbState);
-      return sendJson(res, 200, { state: dbState });
+      return sendJson(res, 200, { state: buildClientStatePayload(dbState, reqUserId) });
     }
 
     // 12. Update Profile & Top 4 Favorites
     if (pathname === '/api/profile' && req.method === 'PUT') {
-      if (!dbState.currentUserId || !dbState.users || !dbState.users[dbState.currentUserId]) {
+      const reqUserId = resolveRequestUserId(req);
+      if (!reqUserId || !dbState.users || !dbState.users[reqUserId]) {
         return sendJson(res, 401, {
           requiresAuth: true,
           error: 'Authentication required. Please sign in or sign up to update your profile.'
         });
       }
       const body = await parseBody(req);
-      const user = dbState.users[dbState.currentUserId];
+      const user = dbState.users[reqUserId];
       if (user) {
         if (body.name !== undefined) {
           user.name = String(body.name).trim() || user.name;
@@ -2337,7 +2412,7 @@ const server = http.createServer(async (req, res) => {
         }
         saveState(dbState);
       }
-      return sendJson(res, 200, { user, state: dbState });
+      return sendJson(res, 200, { user, state: buildClientStatePayload(dbState, reqUserId) });
     }
 
     // 13. Create a New Family / Friend Profile (POST /api/users)
@@ -2413,17 +2488,27 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      if (body.switchToUser !== false && body.switchTo !== false && body.switchToNew !== false) {
+      const shouldSwitch = body.switchToUser !== false && body.switchTo !== false && body.switchToNew !== false;
+      const activeReqUserId = shouldSwitch ? id : resolveRequestUserId(req);
+      if (shouldSwitch) {
         syncWatchlistToActiveUser(dbState);
         dbState.currentUserId = id;
         dbState.watchlist = [...newUser.watchlist];
       }
       saveState(dbState);
-      return sendJson(res, 201, {
-        user: newUser,
-        authUser: buildAuthUser(dbState.currentUserId),
-        state: buildClientStatePayload(dbState)
-      });
+      const sessionToken = shouldSwitch ? createAuthSession(id) : null;
+      return sendJson(
+        res,
+        201,
+        {
+          user: newUser,
+          token: sessionToken || undefined,
+          sessionToken: sessionToken || undefined,
+          authUser: buildAuthUser(activeReqUserId),
+          state: buildClientStatePayload(dbState, activeReqUserId)
+        },
+        sessionToken ? { 'Set-Cookie': buildSessionCookieHeader(sessionToken) } : {}
+      );
     }
 
     // 14. Switch Active Family / Friend Profile (POST /api/users/switch)
@@ -2449,7 +2534,7 @@ const server = http.createServer(async (req, res) => {
           authUser,
           token: sessionToken,
           sessionToken,
-          state: buildClientStatePayload(dbState)
+          state: buildClientStatePayload(dbState, targetUserId)
         },
         { 'Set-Cookie': buildSessionCookieHeader(sessionToken) }
       );
@@ -2459,11 +2544,12 @@ const server = http.createServer(async (req, res) => {
     if (pathname.startsWith('/api/users/') && pathname.endsWith('/follow') && req.method === 'POST') {
       const targetUserId = decodeURIComponent(pathname.split('/')[3] || '');
       const targetUser = dbState.users[targetUserId];
-      const currentUser = dbState.users[dbState.currentUserId];
+      const reqUserId = resolveRequestUserId(req);
+      const currentUser = reqUserId ? dbState.users[reqUserId] : null;
       if (!targetUser || !currentUser) {
         return sendJson(res, 404, { error: 'User not found' });
       }
-      if (targetUserId === dbState.currentUserId) {
+      if (targetUserId === reqUserId) {
         return sendJson(res, 400, { error: 'Cannot follow yourself' });
       }
       currentUser.followingIds = Array.isArray(currentUser.followingIds)
@@ -2485,7 +2571,7 @@ const server = http.createServer(async (req, res) => {
         targetUserId,
         user: currentUser,
         targetUser,
-        state: buildClientStatePayload(dbState)
+        state: buildClientStatePayload(dbState, reqUserId)
       });
     }
 
@@ -2518,10 +2604,11 @@ const server = http.createServer(async (req, res) => {
         );
       }
       saveState(dbState);
+      const reqUserId = resolveRequestUserId(req) || targetUserId;
       return sendJson(res, 200, {
         user,
-        authUser: buildAuthUser(dbState.currentUserId),
-        state: buildClientStatePayload(dbState)
+        authUser: buildAuthUser(reqUserId),
+        state: buildClientStatePayload(dbState, reqUserId)
       });
     }
 
@@ -2665,7 +2752,7 @@ const server = http.createServer(async (req, res) => {
       saveState(dbState);
       const sessionToken = createAuthSession(id);
       const authUser = buildAuthUser(id);
-      const clientState = buildClientStatePayload(dbState);
+      const clientState = buildClientStatePayload(dbState, id);
 
       return sendJson(
         res,
@@ -2750,7 +2837,7 @@ const server = http.createServer(async (req, res) => {
           sessionToken,
           user: targetUser,
           authUser,
-          state: buildClientStatePayload(dbState)
+          state: buildClientStatePayload(dbState, targetUser.id)
         },
         { 'Set-Cookie': buildSessionCookieHeader(sessionToken) }
       );
@@ -2764,8 +2851,11 @@ const server = http.createServer(async (req, res) => {
         saveAuthVault(authVault);
       }
       syncWatchlistToActiveUser(dbState);
-      dbState.currentUserId = null;
-      dbState.watchlist = [];
+      const clientType = String(req.headers['x-omnilog-client'] || '').toLowerCase();
+      if (clientType !== 'browser') {
+        dbState.currentUserId = null;
+        dbState.watchlist = [];
+      }
       saveState(dbState);
       return sendJson(
         res,
@@ -2774,7 +2864,7 @@ const server = http.createServer(async (req, res) => {
           ok: true,
           authenticated: false,
           authUser: null,
-          state: buildClientStatePayload(dbState)
+          state: buildClientStatePayload(dbState, null)
         },
         { 'Set-Cookie': buildSessionCookieHeader('', 0) }
       );
@@ -2784,24 +2874,21 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/auth/me' && req.method === 'GET') {
       const token = extractSessionToken(req);
       const session = token ? authVault.sessions[token] : null;
-      const targetUserId =
-        session && dbState.users[session.userId] ? session.userId : dbState.currentUserId;
+      const targetUserId = resolveRequestUserId(req);
       const authUser = buildAuthUser(targetUserId);
       return sendJson(res, 200, {
         ok: true,
         authenticated: Boolean(session || authUser),
         hasActiveSessionToken: Boolean(session),
         authUser,
-        user: dbState.users[targetUserId]
+        user: targetUserId ? dbState.users[targetUserId] : null
       });
     }
 
     // 21. Update Email & Password in Credential Vault (PUT /api/auth/credentials)
     if (pathname === '/api/auth/credentials' && req.method === 'PUT') {
       const body = await parseBody(req);
-      const token = extractSessionToken(req);
-      const session = token ? authVault.sessions[token] : null;
-      const targetUserId = String(body?.userId || session?.userId || dbState.currentUserId).trim();
+      const targetUserId = String(body?.userId || resolveRequestUserId(req) || '').trim();
       const targetUser = dbState.users[targetUserId];
       if (!targetUser) {
         return sendJson(res, 404, { error: 'User account not found' });
@@ -2850,7 +2937,7 @@ const server = http.createServer(async (req, res) => {
         ok: true,
         authUser,
         user: targetUser,
-        state: buildClientStatePayload(dbState)
+        state: buildClientStatePayload(dbState, targetUserId)
       });
     }
 
@@ -2862,10 +2949,11 @@ const server = http.createServer(async (req, res) => {
           error: 'Please provide csvText or files from a Letterboxd CSV export'
         });
       }
+      const targetUserId = body.userId || resolveRequestUserId(req) || dbState.currentUserId;
       const { user, importedLogsCount, importedWatchlistCount, newCatalogItemsCount } =
-        applyLetterboxdCsvImport(body.userId || dbState.currentUserId, body);
+        applyLetterboxdCsvImport(targetUserId, body);
       saveState(dbState);
-      const clientState = buildClientStatePayload(dbState);
+      const clientState = buildClientStatePayload(dbState, targetUserId);
       return sendJson(res, 200, {
         ok: true,
         user,
@@ -2890,12 +2978,10 @@ const server = http.createServer(async (req, res) => {
       if (!rawUsername) {
         return sendJson(res, 400, { error: 'Please enter a Letterboxd username' });
       }
-      const result = await applyLetterboxdRssImport(
-        body.userId || dbState.currentUserId,
-        rawUsername
-      );
+      const targetUserId = body.userId || resolveRequestUserId(req) || dbState.currentUserId;
+      const result = await applyLetterboxdRssImport(targetUserId, rawUsername);
       saveState(dbState);
-      const clientState = buildClientStatePayload(dbState);
+      const clientState = buildClientStatePayload(dbState, targetUserId);
       return sendJson(res, 200, {
         ok: true,
         user: result.user,
@@ -2915,7 +3001,7 @@ const server = http.createServer(async (req, res) => {
 
     // 24. Export User Diary as RFC-4180 CSV (GET /api/export/diary.csv)
     if ((pathname === '/api/export/diary.csv' || pathname === '/api/export/diary') && req.method === 'GET') {
-      const requestedUserId = url.searchParams.get('userId') || dbState.currentUserId;
+      const requestedUserId = url.searchParams.get('userId') || resolveRequestUserId(req);
       const logsToExport = (dbState.logs || [])
         .filter((l) => (!requestedUserId || requestedUserId === 'all' ? true : l.userId === requestedUserId))
         .sort((a, b) => String(b.dateConsumed || '').localeCompare(String(a.dateConsumed || '')));
@@ -2999,7 +3085,7 @@ const server = http.createServer(async (req, res) => {
       const ext = path.extname(filePath).toLowerCase();
       res.writeHead(200, {
         'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
-        'Cache-Control': 'no-cache'
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
       });
       return fs.createReadStream(filePath).pipe(res);
     }
@@ -3008,7 +3094,7 @@ const server = http.createServer(async (req, res) => {
     const indexHtml = path.join(PUBLIC_DIR, 'index.html');
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'no-cache'
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
     });
     return fs.createReadStream(indexHtml).pipe(res);
   } catch (err) {

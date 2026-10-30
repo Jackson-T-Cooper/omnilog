@@ -1,5 +1,11 @@
-const CACHE_NAME = 'omnilog-pwa-v2';
-const PRECACHE_URLS = ['/', '/styles.css', '/app.js', '/data.js', '/manifest.webmanifest'];
+const CACHE_NAME = 'omnilog-pwa-v4';
+const PRECACHE_URLS = [
+  '/',
+  '/styles.css?v=20261030v4',
+  '/app.js?v=20261030v4',
+  '/data.js',
+  '/manifest.webmanifest'
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -24,7 +30,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-cache' })
       .then((response) => {
         if (response && response.status === 200 && event.request.url.startsWith(self.location.origin)) {
           const clone = response.clone();
