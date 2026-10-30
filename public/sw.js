@@ -1,4 +1,4 @@
-const CACHE_NAME = 'omnilog-pwa-v1';
+const CACHE_NAME = 'omnilog-pwa-v2';
 const PRECACHE_URLS = ['/', '/styles.css', '/app.js', '/data.js', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

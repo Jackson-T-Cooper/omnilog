@@ -2997,13 +2997,19 @@ const server = http.createServer(async (req, res) => {
     }
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       const ext = path.extname(filePath).toLowerCase();
-      res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
+      res.writeHead(200, {
+        'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
+        'Cache-Control': 'no-cache'
+      });
       return fs.createReadStream(filePath).pipe(res);
     }
 
     // SPA fallback
     const indexHtml = path.join(PUBLIC_DIR, 'index.html');
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-cache'
+    });
     return fs.createReadStream(indexHtml).pipe(res);
   } catch (err) {
     console.error('Server error:', err);
