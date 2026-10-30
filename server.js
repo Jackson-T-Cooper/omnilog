@@ -476,16 +476,23 @@ function decryptCloudBackupEnvelope(envelope, secret = getCloudBackupSecret()) {
 }
 
 function getCloudBackupProvider() {
-  if (process.env.GITHUB_GIST_TOKEN) return 'github-secret-gist';
+  if (process.env.GITHUB_BACKUP_TOKEN || process.env.GITHUB_GIST_TOKEN) {
+    return process.env.GITHUB_BACKUP_REPO ? 'github-private-repo-encrypted' : 'github-secret-gist';
+  }
   if (process.env.CLOUD_BACKUP_URL) return 'custom-webhook-url';
   return 'local-encrypted-mirror';
 }
 
 function getCloudBackupStatus() {
   return {
-    enabled: Boolean(process.env.GITHUB_GIST_TOKEN || process.env.CLOUD_BACKUP_URL),
+    enabled: Boolean(
+      process.env.GITHUB_BACKUP_TOKEN ||
+        process.env.GITHUB_GIST_TOKEN ||
+        process.env.CLOUD_BACKUP_URL
+    ),
     provider: getCloudBackupProvider(),
     cipher: 'aes-256-gcm',
+    backupRepo: process.env.GITHUB_BACKUP_REPO || null,
     gistId: cloudBackupState.gistId ? `${String(cloudBackupState.gistId).slice(0, 6)}...` : null,
     lastBackupAt: cloudBackupState.lastBackupAt,
     lastRestoreAt: cloudBackupState.lastRestoreAt,
@@ -493,6 +500,52 @@ function getCloudBackupStatus() {
     usersCount: dbState && dbState.users ? Object.keys(dbState.users).length : 0,
     logsCount: dbState && Array.isArray(dbState.logs) ? dbState.logs.length : 0
   };
+}
+
+async function syncToGitHubRepoContents(token, repoFullName, envelope) {
+  const apiUrl = `https://api.github.com/repos/${repoFullName}/contents/${CLOUD_GIST_FILENAME}`;
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/vnd.github+json',
+    'Content-Type': 'application/json',
+    'User-Agent': 'Omnilog-Cloud-Backup'
+  };
+  let existingSha = null;
+  const getRes = await fetch(apiUrl, { headers });
+  if (getRes.ok) {
+    const existingData = await getRes.json();
+    existingSha = existingData?.sha || null;
+  }
+  const contentBase64 = Buffer.from(JSON.stringify(envelope, null, 2), 'utf8').toString('base64');
+  const putBody = {
+    message: `Automated AES-256-GCM cloud backup (${envelope.backedUpAt})`,
+    content: contentBase64
+  };
+  if (existingSha) putBody.sha = existingSha;
+  const putRes = await fetch(apiUrl, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(putBody)
+  });
+  return putRes.ok;
+}
+
+async function fetchFromGitHubRepoContents(token, repoFullName) {
+  const apiUrl = `https://api.github.com/repos/${repoFullName}/contents/${CLOUD_GIST_FILENAME}`;
+  const res = await fetch(apiUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'Omnilog-Cloud-Backup'
+    }
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (data && data.content) {
+    const decoded = Buffer.from(String(data.content).replace(/\s+/g, ''), 'base64').toString('utf8');
+    return JSON.parse(decoded);
+  }
+  return null;
 }
 
 async function discoverSecretGistId(token) {
@@ -538,11 +591,19 @@ async function syncCloudBackupNow(customSecret) {
     cloudBackupState.lastError = err.message;
   }
 
-  // Push to GitHub Secret Gist if GITHUB_GIST_TOKEN is configured
-  const gistToken = process.env.GITHUB_GIST_TOKEN;
-  if (gistToken) {
+  // Push to GitHub Private Repo or Secret Gist if token is configured
+  const ghToken = process.env.GITHUB_BACKUP_TOKEN || process.env.GITHUB_GIST_TOKEN;
+  const backupRepo = process.env.GITHUB_BACKUP_REPO;
+  if (ghToken && backupRepo) {
     try {
-      const existingId = await discoverSecretGistId(gistToken);
+      const ok = await syncToGitHubRepoContents(ghToken, backupRepo, envelope);
+      cloudBackupState.lastError = ok ? null : 'GitHub Repo Backup failed';
+    } catch (err) {
+      cloudBackupState.lastError = err.message;
+    }
+  } else if (ghToken) {
+    try {
+      const existingId = await discoverSecretGistId(ghToken);
       const gistBody = {
         description: CLOUD_GIST_DESCRIPTION,
         public: false,
@@ -559,7 +620,7 @@ async function syncCloudBackupNow(customSecret) {
       const res = await fetch(endpoint, {
         method,
         headers: {
-          Authorization: `Bearer ${gistToken}`,
+          Authorization: `Bearer ${ghToken}`,
           Accept: 'application/vnd.github+json',
           'Content-Type': 'application/json',
           'User-Agent': 'Omnilog-Cloud-Backup'
@@ -621,14 +682,21 @@ async function restoreFromCloudBackupIfNeeded(force = false) {
   if (hasLocalUsers && !force) return false;
 
   let envelope = null;
-  const gistToken = process.env.GITHUB_GIST_TOKEN;
-  if (gistToken) {
+  const ghToken = process.env.GITHUB_BACKUP_TOKEN || process.env.GITHUB_GIST_TOKEN;
+  const backupRepo = process.env.GITHUB_BACKUP_REPO;
+  if (ghToken && backupRepo) {
     try {
-      const gistId = await discoverSecretGistId(gistToken);
+      envelope = await fetchFromGitHubRepoContents(ghToken, backupRepo);
+    } catch (err) {
+      cloudBackupState.lastError = err.message;
+    }
+  } else if (ghToken) {
+    try {
+      const gistId = await discoverSecretGistId(ghToken);
       if (gistId) {
         const res = await fetch(`https://api.github.com/gists/${gistId}`, {
           headers: {
-            Authorization: `Bearer ${gistToken}`,
+            Authorization: `Bearer ${ghToken}`,
             Accept: 'application/vnd.github+json',
             'User-Agent': 'Omnilog-Cloud-Backup'
           }

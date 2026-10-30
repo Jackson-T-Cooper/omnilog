@@ -9,6 +9,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: GITHUB_BACKUP_REPO
+        value: Jackson-T-Cooper/omnilog-cloud-backup
+      - key: GITHUB_BACKUP_TOKEN
+        sync: false
       - key: GITHUB_GIST_TOKEN
         sync: false
       - key: CLOUD_BACKUP_SECRET
