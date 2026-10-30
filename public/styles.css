@@ -594,13 +594,15 @@ progress {
   box-shadow: 0 6px 18px rgba(10, 5, 2, 0.35);
 }
 
-.medium-tabs {
+.medium-tabs,
+.filter-pills {
   display: flex;
   gap: 0.45rem;
   flex-wrap: wrap;
 }
 
-.pill-tab {
+.pill-tab,
+.pill {
   background: #23160f;
   color: var(--parchment-warm);
   border: 1px solid var(--border-wood);
@@ -613,12 +615,14 @@ progress {
   transition: all 0.15s ease;
 }
 
-.pill-tab:hover {
+.pill-tab:hover,
+.pill:hover {
   border-color: var(--accent-brass);
   color: var(--parchment-light);
 }
 
-.pill-tab.is-active {
+.pill-tab.is-active,
+.pill.is-active {
   background: linear-gradient(180deg, #dfaa5b 0%, #c48938 100%);
   color: #1c110b;
   border-color: #f2c986;
@@ -2617,16 +2621,20 @@ body {
 
   .auth-mode-tabs {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.3rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
     width: 100%;
     overflow: visible;
   }
 
-  .auth-mode-tabs .pill-tab {
-    padding: 0.38rem 0.2rem;
-    font-size: 0.73rem;
+  .auth-mode-tabs .pill-tab,
+  .auth-mode-tabs .pill {
+    padding: 0.38rem 0.4rem;
+    font-size: 0.76rem;
     min-width: 0;
+    width: 100%;
+    text-align: center;
+    justify-content: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
