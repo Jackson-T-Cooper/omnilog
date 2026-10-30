@@ -1752,6 +1752,8 @@ function renderAppIconSvg() {
 </svg>`;
 }
 
+const MAINTENANCE_LOCKDOWN = true;
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
@@ -1769,10 +1771,9 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/health' && (req.method === 'GET' || req.method === 'HEAD')) {
       const payload = {
         ok: true,
-        status: 'awake',
+        status: MAINTENANCE_LOCKDOWN ? 'offline_maintenance' : 'awake',
         uptimeSeconds: Math.round(process.uptime()),
-        timestamp: new Date().toISOString(),
-        cloudBackup: getCloudBackupStatus()
+        timestamp: new Date().toISOString()
       };
       if (req.method === 'HEAD') {
         res.writeHead(200, {
@@ -1782,6 +1783,60 @@ const server = http.createServer(async (req, res) => {
         return res.end();
       }
       return sendJson(res, 200, payload);
+    }
+
+    if (MAINTENANCE_LOCKDOWN) {
+      if (pathname.startsWith('/api/')) {
+        return sendJson(res, 503, {
+          ok: false,
+          offline: true,
+          error: 'Omnilog is temporarily offline for maintenance.'
+        });
+      }
+      res.writeHead(503, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0'
+      });
+      return res.end(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Omnilog — Temporarily Offline</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1a110b;
+      color: #f5ebd9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 24px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .box {
+      max-width: 420px;
+      background: #261911;
+      border: 1px solid rgba(212, 155, 75, 0.35);
+      border-radius: 16px;
+      padding: 28px 24px;
+    }
+    h1 { margin: 0 0 10px; font-size: 1.35rem; color: #e3af64; }
+    p { margin: 0; font-size: 0.95rem; line-height: 1.5; color: #d6c5b3; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Omnilog is Temporarily Offline</h1>
+    <p>The site has been shut down temporarily for maintenance.</p>
+  </div>
+</body>
+</html>`);
     }
 
     if (pathname === '/api/cloud-backup/status' && req.method === 'GET') {
