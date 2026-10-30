@@ -1,0 +1,11 @@
+{
+  "name": "omnilog-social-media-platform",
+  "version": "1.0.0",
+  "description": "Letterboxd-style social platform for Movies, TV Shows, and Books",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  }
+}

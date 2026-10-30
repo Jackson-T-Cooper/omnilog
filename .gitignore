@@ -1,0 +1,9 @@
+node_modules/
+.env
+.DS_Store
+*.log
+*.tmp
+data/auth.json
+data/auth.json.tmp
+data/cloud-backup.enc.json
+data/cloud-backup.enc.json.tmp

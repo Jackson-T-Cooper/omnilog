@@ -1,0 +1,551 @@
+// Initial Seed Data for OMNILOG — Letterboxd-style Social Platform for Movies, TV Shows & Books
+
+export function buildPosterUrl(id, title, creator, year, type, accent1 = '#d49b4b', accent2 = '#2c1b12') {
+  const params = new URLSearchParams({
+    id,
+    title,
+    creator,
+    year: String(year || ''),
+    type,
+    c1: accent1,
+    c2: accent2
+  });
+  return `/api/poster?${params.toString()}`;
+}
+
+export const INITIAL_CATALOG = [
+  // ==================== MOVIES (8) ====================
+  {
+    id: 'movie-101',
+    type: 'movie',
+    title: 'Dune: Part Two',
+    year: 2024,
+    creator: 'Denis Villeneuve',
+    posterUrl: 'https://m.media-amazon.com/images/M/MV5BNTc0YmQxMjEtODI5MC00NjFiLTlkMWUtOGQ5NjFmYWUyZGJhXkEyXkFqcGc@._V1_SX600.jpg',
+    fallbackPosterUrl: buildPosterUrl('movie-101', 'Dune: Part Two', 'Denis Villeneuve', 2024, 'movie', '#d97706', '#1c1917'),
+    synopsis: 'Paul Atreides unites with Chani and the Fremen while on a warpath of revenge against the conspirators who destroyed his family. Facing a choice between the love of his life and the fate of the known universe, he endeavors to prevent a terrible future.',
+    genres: ['Sci-Fi', 'Adventure', 'Drama'],
+    runtimeMinutes: 166,
+    communityRating: 4.6,
+    ratingsCount: 4820,
+    ratingDistribution: [12, 18, 45, 90, 180, 420, 890, 1450, 1715, 2100],
+    crossMediaLinks: [
+      { targetId: 'book-302', relationType: 'adaptation', relationLabel: 'Based on the Novel by Frank Herbert', relation: 'Based on the Novel by Frank Herbert', isAdaptation: true },
+      { targetId: 'tv-207', relationType: 'companion', relationLabel: 'Rebel Empire Companion · TV', relation: 'Rebel Empire Companion · TV', isAdaptation: false },
+      { targetId: 'book-308', relationType: 'thematic', relationLabel: 'Worldbuilding Classic · Book', relation: 'Worldbuilding Classic · Book', isAdaptation: false },
+      { targetId: 'movie-104', relationType: 'companion', relationLabel: 'Denis Villeneuve Sci-Fi Epic · Film', relation: 'Denis Villeneuve Sci-Fi Epic · Film', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'movie-102',
+    type: 'movie',
+    title: 'Past Lives',
+    year: 2023,
+    creator: 'Celine Song',
+    posterUrl: 'https://m.media-amazon.com/images/M/MV5BYjQyMTNhNjUtN2VmYy00NWRhLTkwOTctMGVmNTBmNDIxYjZhXkEyXkFqcGc@._V1_SX600.jpg',
+    fallbackPosterUrl: buildPosterUrl('movie-102', 'Past Lives', 'Celine Song', 2023, 'movie', '#6366f1', '#0f172a'),
+    synopsis: 'Nora and Hae Sung, two deeply connected childhood friends, are wrested apart after Nora’s family emigrates from South Korea. Two decades later, they are reunited in New York for one fateful week as they confront notions of destiny, love, and the choices that make a life.',
+    genres: ['Drama', 'Romance'],
+    runtimeMinutes: 106,
+    communityRating: 4.4,
+    ratingsCount: 3190,
+    ratingDistribution: [8, 14, 30, 65, 140, 310, 680, 1020, 923, 1180],
+    crossMediaLinks: [
+      { targetId: 'book-303', relationType: 'companion', relationLabel: 'Soulmates Across Decades · Book', relation: 'Soulmates Across Decades · Book', isAdaptation: true },
+      { targetId: 'tv-203', relationType: 'thematic', relationLabel: 'Intimate Character Study · TV', relation: 'Intimate Character Study · TV', isAdaptation: false },
+      { targetId: 'book-307', relationType: 'thematic', relationLabel: 'Quiet Devotion · Book', relation: 'Quiet Devotion · Book', isAdaptation: false },
+      { targetId: 'movie-108', relationType: 'companion', relationLabel: 'Unspoken Devotion · Film', relation: 'Unspoken Devotion · Film', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'movie-103',
+    type: 'movie',
+    title: 'Everything Everywhere All at Once',
+    year: 2022,
+    creator: 'Daniel Kwan & Daniel Scheinert',
+    posterUrl: 'https://m.media-amazon.com/images/M/MV5BOWNmMzAzZmQtNDQ1NC00Nzk5LTkyMmUtNGI2N2NkOWM4MzEyXkEyXkFqcGc@._V1_SX600.jpg',
+    fallbackPosterUrl: buildPosterUrl('movie-103', 'Everything Everywhere All at Once', 'Daniels', 2022, 'movie', '#ec4899', '#1e1b4b'),
+    synopsis: 'An aging Chinese immigrant is swept up in an insane adventure, where she alone can save the world by exploring other universes connecting with the lives she could have led.',
+    genres: ['Sci-Fi', 'Comedy', 'Drama'],
+    runtimeMinutes: 139,
+    communityRating: 4.5,
+    ratingsCount: 5410,
+    ratingDistribution: [25, 35, 60, 110, 220, 480, 920, 1510, 2050, 2410],
+    crossMediaLinks: [
+      { targetId: 'tv-204', relationType: 'companion', relationLabel: 'Kinetic Multiverse & Family · TV', relation: 'Kinetic Multiverse & Family · TV', isAdaptation: false },
+      { targetId: 'book-305', relationType: 'thematic', relationLabel: 'Infinite Labyrinths · Book', relation: 'Infinite Labyrinths · Book', isAdaptation: false },
+      { targetId: 'book-303', relationType: 'thematic', relationLabel: 'Parallel Lives & Craft · Book', relation: 'Parallel Lives & Craft · Book', isAdaptation: false },
+      { targetId: 'movie-106', relationType: 'companion', relationLabel: 'Multiverse Companion · Film', relation: 'Multiverse Companion · Film', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'movie-104',
+    type: 'movie',
+    title: 'Blade Runner 2049',
+    year: 2017,
+    creator: 'Denis Villeneuve',
+    posterUrl: 'https://m.media-amazon.com/images/M/MV5BNzA1Njg4NzYxOV5BMl5BanBnXkFtZTgwODk5NjU3MzI@._V1_SX600.jpg',
+    fallbackPosterUrl: buildPosterUrl('movie-104', 'Blade Runner 2049', 'Denis Villeneuve', 2017, 'movie', '#f97316', '#090d16'),
+    synopsis: 'Young Blade Runner K’s discovery of a long-buried secret leads him to track down former Blade Runner Rick Deckard, who’s been missing for thirty years in a neon-drenched dystopian Los Angeles.',
+    genres: ['Sci-Fi', 'Thriller', 'Mystery'],
+    runtimeMinutes: 164,
+    communityRating: 4.4,
+    ratingsCount: 4120,
+    ratingDistribution: [15, 20, 40, 85, 190, 410, 790, 1290, 1280, 1520],
+    crossMediaLinks: [
+      { targetId: 'book-307', relationType: 'adaptation', relationLabel: 'Artificial Souls Companion · Book', relation: 'Artificial Souls Companion · Book', isAdaptation: true },
+      { targetId: 'tv-201', relationType: 'companion', relationLabel: 'Corporate Dystopia · TV', relation: 'Corporate Dystopia · TV', isAdaptation: false },
+      { targetId: 'book-302', relationType: 'thematic', relationLabel: 'Villeneuve Sci-Fi Lineage · Book', relation: 'Villeneuve Sci-Fi Lineage · Book', isAdaptation: false },
+      { targetId: 'movie-101', relationType: 'companion', relationLabel: 'Denis Villeneuve Sci-Fi Epic · Film', relation: 'Denis Villeneuve Sci-Fi Epic · Film', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'movie-105',
+    type: 'movie',
+    title: 'Parasite',
+    year: 2019,
+    creator: 'Bong Joon-ho',
+    posterUrl: 'https://m.media-amazon.com/images/M/MV5BYjk1Y2U4MjQtY2ZiNS00OWQyLWI3MmYtZWUwNmRjYWRiNWNhXkEyXkFqcGc@._V1_SX600.jpg',
+    fallbackPosterUrl: buildPosterUrl('movie-105', 'Parasite', 'Bong Joon-ho', 2019, 'movie', '#10b981', '#062e22'),
+    synopsis: 'Greed and class discrimination threaten the newly formed symbiotic relationship between the wealthy Park family and the destitute Kim clan in this razor-sharp modern masterpiece.',
+    genres: ['Thriller', 'Drama', 'Comedy'],
+    runtimeMinutes: 132,
+    communityRating: 4.7,
+    ratingsCount: 6290,
+    ratingDistribution: [10, 12, 25, 50, 110, 290, 650, 1480, 2190, 3120],
+    crossMediaLinks: [
+      { targetId: 'tv-202', relationType: 'companion', relationLabel: 'Class Warfare & Wealth · TV', relation: 'Class Warfare & Wealth · TV', isAdaptation: false },
+      { targetId: 'tv-201', relationType: 'thematic', relationLabel: 'Late-Capitalist Satire · TV', relation: 'Late-Capitalist Satire · TV', isAdaptation: false },
+      { targetId: 'book-306', relationType: 'thematic', relationLabel: 'Unflinching Social Critique · Book', relation: 'Unflinching Social Critique · Book', isAdaptation: false },
+      { targetId: 'tv-203', relationType: 'thematic', relationLabel: 'High-Pressure Ensemble · TV', relation: 'High-Pressure Ensemble · TV', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'movie-106',
+    type: 'movie',
+    title: 'Spider-Man: Across the Spider-Verse',
+    year: 2023,
+    creator: 'Joaquim Dos Santos, Kemp Powers, Justin K. Thompson',
+    posterUrl: 'https://m.media-amazon.com/images/M/MV5BNThiZjA3MjItZGY5Ni00ZmJhLWEwN2EtOTBlYTA4Y2E0M2ZmXkEyXkFqcGc@._V1_SX600.jpg',
+    fallbackPosterUrl: buildPosterUrl('movie-106', 'Across the Spider-Verse', 'Dos Santos · Powers · Thompson', 2023, 'movie', '#e11d48', '#0f172a'),
+    synopsis: 'Miles Morales catapults across the Multiverse, where he encounters a team of Spider-People charged with protecting its very existence. When the heroes clash on how to handle a new threat, Miles must redefine what it means to be a hero.',
+    genres: ['Animation', 'Sci-Fi', 'Adventure'],
+    runtimeMinutes: 140,
+    communityRating: 4.5,
+    ratingsCount: 3890,
+    ratingDistribution: [9, 15, 28, 70, 150, 360, 740, 1180, 1338, 1690],
+    crossMediaLinks: [
+      { targetId: 'tv-204', relationType: 'adaptation', relationLabel: 'Groundbreaking Animation · TV', relation: 'Groundbreaking Animation · TV', isAdaptation: true },
+      { targetId: 'book-303', relationType: 'companion', relationLabel: 'Digital Art & Creation · Book', relation: 'Digital Art & Creation · Book', isAdaptation: false },
+      { targetId: 'book-301', relationType: 'thematic', relationLabel: 'High-Velocity Sci-Fi Adventure · Book', relation: 'High-Velocity Sci-Fi Adventure · Book', isAdaptation: false },
+      { targetId: 'movie-103', relationType: 'companion', relationLabel: 'Multiverse Storytelling · Film', relation: 'Multiverse Storytelling · Film', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'movie-107',
+    type: 'movie',
+    title: 'Oppenheimer',
+    year: 2023,
+    creator: 'Christopher Nolan',
+    posterUrl: 'https://m.media-amazon.com/images/M/MV5BN2JkMDc5MGQtZjg3YS00NmFiLWIyZmQtZTJmNTM5MjVmYTQ4XkEyXkFqcGc@._V1_SX600.jpg',
+    fallbackPosterUrl: buildPosterUrl('movie-107', 'Oppenheimer', 'Christopher Nolan', 2023, 'movie', '#f59e0b', '#18181b'),
+    synopsis: 'The story of American scientist J. Robert Oppenheimer and his role in the development of the atomic bomb during World War II, and the political reckoning that followed.',
+    genres: ['Drama', 'History', 'Thriller'],
+    runtimeMinutes: 180,
+    communityRating: 4.4,
+    ratingsCount: 4490,
+    ratingDistribution: [14, 22, 45, 95, 210, 430, 860, 1340, 1474, 1620],
+    crossMediaLinks: [
+      { targetId: 'tv-206', relationType: 'adaptation', relationLabel: 'Nuclear History Companion · TV', relation: 'Nuclear History Companion · TV', isAdaptation: true },
+      { targetId: 'book-304', relationType: 'companion', relationLabel: 'Physics & Existential Stakes · Book', relation: 'Physics & Existential Stakes · Book', isAdaptation: false },
+      { targetId: 'book-306', relationType: 'thematic', relationLabel: 'American Reckoning · Book', relation: 'American Reckoning · Book', isAdaptation: false },
+      { targetId: 'tv-205', relationType: 'thematic', relationLabel: 'Historical Power Struggle · TV', relation: 'Historical Power Struggle · TV', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'movie-108',
+    type: 'movie',
+    title: 'Portrait of a Lady on Fire',
+    year: 2019,
+    creator: 'Céline Sciamma',
+    posterUrl: 'https://m.media-amazon.com/images/M/MV5BZjJlYWJlYmMtNjMyMS00ZDgxLTlmNjAtOTJhMzBiZWM5N2VmXkEyXkFqcGc@._V1_SX600.jpg',
+    fallbackPosterUrl: buildPosterUrl('movie-108', 'Portrait of a Lady on Fire', 'Céline Sciamma', 2019, 'movie', '#ef4444', '#1e1b4b'),
+    synopsis: 'On an isolated island in Brittany at the end of the eighteenth century, a female painter is obliged to paint a wedding portrait of a young woman without her knowing.',
+    genres: ['Drama', 'Romance', 'History'],
+    runtimeMinutes: 122,
+    communityRating: 4.6,
+    ratingsCount: 2950,
+    ratingDistribution: [6, 10, 18, 42, 95, 210, 490, 880, 1199, 1420],
+    crossMediaLinks: [
+      { targetId: 'book-305', relationType: 'thematic', relationLabel: 'Poetic Solitude · Book', relation: 'Poetic Solitude · Book', isAdaptation: false },
+      { targetId: 'tv-205', relationType: 'companion', relationLabel: 'Period Immersion · TV', relation: 'Period Immersion · TV', isAdaptation: false },
+      { targetId: 'book-303', relationType: 'thematic', relationLabel: 'Artistic Collaboration · Book', relation: 'Artistic Collaboration · Book', isAdaptation: false },
+      { targetId: 'movie-102', relationType: 'companion', relationLabel: 'Fate & Memory · Film', relation: 'Fate & Memory · Film', isAdaptation: false }
+    ]
+  },
+
+  // ==================== TV SHOWS (8) ====================
+  {
+    id: 'tv-201',
+    type: 'tv',
+    title: 'Severance',
+    year: 2022,
+    creator: 'Dan Erickson & Ben Stiller',
+    posterUrl: 'https://static.tvmaze.com/uploads/images/original_untouched/548/1371406.jpg',
+    fallbackPosterUrl: buildPosterUrl('tv-201', 'Severance', 'Dan Erickson · Ben Stiller', 2022, 'tv', '#06b6d4', '#082f49'),
+    synopsis: 'Mark leads a team of office workers whose memories have been surgically divided between their work and personal lives. When a mysterious colleague appears outside of work, it begins a journey to discover the truth about their jobs.',
+    genres: ['Sci-Fi', 'Thriller', 'Mystery', 'Drama'],
+    seasonsCount: 2,
+    episodesCount: 19,
+    episodesPerSeason: [9, 10],
+    communityRating: 4.7,
+    ratingsCount: 3640,
+    ratingDistribution: [5, 9, 18, 40, 90, 210, 520, 1090, 1658, 1980],
+    crossMediaLinks: [
+      { targetId: 'book-305', relationType: 'companion', relationLabel: 'Enigmatic Architecture & Memory · Book', relation: 'Enigmatic Architecture & Memory · Book', isAdaptation: false },
+      { targetId: 'movie-104', relationType: 'companion', relationLabel: 'Identity & Conditioning · Film', relation: 'Identity & Conditioning · Film', isAdaptation: false },
+      { targetId: 'book-307', relationType: 'thematic', relationLabel: 'Manufactured Consciousness · Book', relation: 'Manufactured Consciousness · Book', isAdaptation: false },
+      { targetId: 'movie-105', relationType: 'thematic', relationLabel: 'Workplace & Class Thriller · Film', relation: 'Workplace & Class Thriller · Film', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'tv-202',
+    type: 'tv',
+    title: 'Succession',
+    year: 2018,
+    creator: 'Jesse Armstrong',
+    posterUrl: 'https://static.tvmaze.com/uploads/images/original_untouched/453/1134275.jpg',
+    fallbackPosterUrl: buildPosterUrl('tv-202', 'Succession', 'Jesse Armstrong', 2018, 'tv', '#ca8a04', '#1c1917'),
+    synopsis: 'The Roy family is known for controlling the biggest media and entertainment company in the world. However, their world changes when their father steps down from the company.',
+    genres: ['Drama', 'Comedy'],
+    seasonsCount: 4,
+    episodesCount: 39,
+    episodesPerSeason: [10, 10, 9, 10],
+    communityRating: 4.8,
+    ratingsCount: 4120,
+    ratingDistribution: [8, 10, 20, 35, 80, 190, 480, 990, 1820, 2310],
+    crossMediaLinks: [
+      { targetId: 'movie-105', relationType: 'companion', relationLabel: 'Wealth & Power Dynamics · Film', relation: 'Wealth & Power Dynamics · Film', isAdaptation: false },
+      { targetId: 'book-306', relationType: 'thematic', relationLabel: 'Empire & Ambition · Book', relation: 'Empire & Ambition · Book', isAdaptation: false },
+      { targetId: 'book-302', relationType: 'thematic', relationLabel: 'Warring Noble Houses · Book', relation: 'Warring Noble Houses · Book', isAdaptation: false },
+      { targetId: 'tv-205', relationType: 'companion', relationLabel: 'Dynastic Power Struggle · TV', relation: 'Dynastic Power Struggle · TV', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'tv-203',
+    type: 'tv',
+    title: 'The Bear',
+    year: 2022,
+    creator: 'Christopher Storer',
+    posterUrl: 'https://static.tvmaze.com/uploads/images/original_untouched/629/1574642.jpg',
+    fallbackPosterUrl: buildPosterUrl('tv-203', 'The Bear', 'Christopher Storer', 2022, 'tv', '#3b82f6', '#0f172a'),
+    synopsis: 'A young chef from the fine dining world comes home to Chicago to run his family’s Italian beef sandwich shop after a heartbreaking death in his family.',
+    genres: ['Drama', 'Comedy'],
+    seasonsCount: 3,
+    episodesCount: 28,
+    episodesPerSeason: [8, 10, 10],
+    communityRating: 4.4,
+    ratingsCount: 2890,
+    ratingDistribution: [10, 15, 32, 70, 150, 340, 680, 980, 1110, 1190],
+    crossMediaLinks: [
+      { targetId: 'book-303', relationType: 'companion', relationLabel: 'Creative Obsession & Partnership · Book', relation: 'Creative Obsession & Partnership · Book', isAdaptation: false },
+      { targetId: 'movie-102', relationType: 'thematic', relationLabel: 'Emotional Realism · Film', relation: 'Emotional Realism · Film', isAdaptation: false },
+      { targetId: 'movie-105', relationType: 'thematic', relationLabel: 'High-Tension Ensemble · Film', relation: 'High-Tension Ensemble · Film', isAdaptation: false },
+      { targetId: 'tv-202', relationType: 'companion', relationLabel: 'High-Stress Ensemble · TV', relation: 'High-Stress Ensemble · TV', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'tv-204',
+    type: 'tv',
+    title: 'Arcane',
+    year: 2021,
+    creator: 'Christian Linke & Alex Yee',
+    posterUrl: 'https://static.tvmaze.com/uploads/images/original_untouched/536/1340287.jpg',
+    fallbackPosterUrl: buildPosterUrl('tv-204', 'Arcane', 'Christian Linke · Alex Yee', 2021, 'tv', '#a855f7', '#1e1b4b'),
+    synopsis: 'Amid the stark discord of twin cities Piltover and Zaun, two sisters fight on rival sides of a war between magic technologies and clashing convictions.',
+    genres: ['Animation', 'Sci-Fi', 'Adventure', 'Drama'],
+    seasonsCount: 2,
+    episodesCount: 18,
+    episodesPerSeason: [9, 9],
+    communityRating: 4.6,
+    ratingsCount: 3320,
+    ratingDistribution: [7, 12, 24, 55, 115, 260, 590, 1040, 1410, 1690],
+    crossMediaLinks: [
+      { targetId: 'movie-106', relationType: 'adaptation', relationLabel: 'Stylized Visual Masterwork · Film', relation: 'Stylized Visual Masterwork · Film', isAdaptation: true },
+      { targetId: 'book-302', relationType: 'thematic', relationLabel: 'Faction Conflict & Lore · Book', relation: 'Faction Conflict & Lore · Book', isAdaptation: false },
+      { targetId: 'book-303', relationType: 'companion', relationLabel: 'Game Worlds & Craft · Book', relation: 'Game Worlds & Craft · Book', isAdaptation: false },
+      { targetId: 'movie-103', relationType: 'companion', relationLabel: 'Kinetic Action · Film', relation: 'Kinetic Action · Film', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'tv-205',
+    type: 'tv',
+    title: 'Shōgun',
+    year: 2024,
+    creator: 'Rachel Kondo & Justin Marks',
+    posterUrl: 'https://static.tvmaze.com/uploads/images/original_untouched/506/1265637.jpg',
+    fallbackPosterUrl: buildPosterUrl('tv-205', 'Shōgun', 'Rachel Kondo · Justin Marks', 2024, 'tv', '#dc2626', '#18181b'),
+    synopsis: 'Set in Japan in the year 1600 at the dawn of a century-defining civil war, Lord Yoshii Toranaga is fighting for his life as his enemies on the Council of Regents unite against him.',
+    genres: ['Drama', 'History', 'Adventure'],
+    seasonsCount: 1,
+    episodesCount: 10,
+    episodesPerSeason: [10],
+    communityRating: 4.7,
+    ratingsCount: 2740,
+    ratingDistribution: [4, 8, 16, 38, 82, 195, 460, 890, 1290, 1540],
+    crossMediaLinks: [
+      { targetId: 'book-302', relationType: 'adaptation', relationLabel: 'Feudal Strategy & Honor · Book', relation: 'Feudal Strategy & Honor · Book', isAdaptation: true },
+      { targetId: 'movie-101', relationType: 'companion', relationLabel: 'Epic Political Cinema · Film', relation: 'Epic Political Cinema · Film', isAdaptation: false },
+      { targetId: 'movie-108', relationType: 'thematic', relationLabel: 'Historical Craft · Film', relation: 'Historical Craft · Film', isAdaptation: false },
+      { targetId: 'book-306', relationType: 'thematic', relationLabel: 'Unsparing Historical Fiction · Book', relation: 'Unsparing Historical Fiction · Book', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'tv-206',
+    type: 'tv',
+    title: 'Chernobyl',
+    year: 2019,
+    creator: 'Craig Mazin',
+    posterUrl: 'https://static.tvmaze.com/uploads/images/original_untouched/193/482599.jpg',
+    fallbackPosterUrl: buildPosterUrl('tv-206', 'Chernobyl', 'Craig Mazin', 2019, 'tv', '#84cc16', '#142615'),
+    synopsis: 'In April 1986, an explosion at the Chernobyl nuclear power plant in the Union of Soviet Socialist Republics becomes one of the world’s worst man-made catastrophes.',
+    genres: ['Drama', 'History', 'Thriller'],
+    seasonsCount: 1,
+    episodesCount: 5,
+    episodesPerSeason: [5],
+    communityRating: 4.8,
+    ratingsCount: 4580,
+    ratingDistribution: [5, 7, 14, 28, 65, 150, 410, 920, 1680, 2590],
+    crossMediaLinks: [
+      { targetId: 'movie-107', relationType: 'adaptation', relationLabel: 'Atomic Age Companion · Film', relation: 'Atomic Age Companion · Film', isAdaptation: true },
+      { targetId: 'book-304', relationType: 'companion', relationLabel: 'Scientific Crisis · Book', relation: 'Scientific Crisis · Book', isAdaptation: false },
+      { targetId: 'book-301', relationType: 'thematic', relationLabel: 'Scientific Survival Thriller · Book', relation: 'Scientific Survival Thriller · Book', isAdaptation: false },
+      { targetId: 'tv-207', relationType: 'thematic', relationLabel: 'Authoritarian Bureaucracy · TV', relation: 'Authoritarian Bureaucracy · TV', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'tv-207',
+    type: 'tv',
+    title: 'Andor',
+    year: 2022,
+    creator: 'Tony Gilroy',
+    posterUrl: 'https://static.tvmaze.com/uploads/images/original_untouched/564/1411766.jpg',
+    fallbackPosterUrl: buildPosterUrl('tv-207', 'Andor', 'Tony Gilroy', 2022, 'tv', '#14b8a6', '#042f2e'),
+    synopsis: 'Prequel series to Star Wars’ Rogue One. In an era filled with danger, deception and intrigue, Cassian Andor will embark on the path that is destined to turn him into a rebel hero.',
+    genres: ['Sci-Fi', 'Thriller', 'Drama'],
+    seasonsCount: 2,
+    episodesCount: 24,
+    episodesPerSeason: [12, 12],
+    communityRating: 4.6,
+    ratingsCount: 2410,
+    ratingDistribution: [6, 10, 20, 45, 95, 210, 470, 820, 1140, 1380],
+    crossMediaLinks: [
+      { targetId: 'movie-101', relationType: 'companion', relationLabel: 'Rebellion Against Empire · Film', relation: 'Rebellion Against Empire · Film', isAdaptation: false },
+      { targetId: 'book-302', relationType: 'companion', relationLabel: 'Political Sci-Fi Foundation · Book', relation: 'Political Sci-Fi Foundation · Book', isAdaptation: false },
+      { targetId: 'book-308', relationType: 'thematic', relationLabel: 'Envoy on a Frozen World · Book', relation: 'Envoy on a Frozen World · Book', isAdaptation: false },
+      { targetId: 'movie-104', relationType: 'thematic', relationLabel: 'Dystopian Resistance · Film', relation: 'Dystopian Resistance · Film', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'tv-208',
+    type: 'tv',
+    title: 'The Last of Us',
+    year: 2023,
+    creator: 'Craig Mazin & Neil Druckmann',
+    posterUrl: 'https://static.tvmaze.com/uploads/images/original_untouched/563/1409008.jpg',
+    fallbackPosterUrl: buildPosterUrl('tv-208', 'The Last of Us', 'Craig Mazin · Neil Druckmann', 2023, 'tv', '#22c55e', '#142615'),
+    synopsis: 'After a global pandemic destroys civilization, a hardened survivor takes charge of a 14-year-old girl who may be humanity’s last hope.',
+    genres: ['Drama', 'Sci-Fi', 'Thriller'],
+    seasonsCount: 2,
+    episodesCount: 16,
+    episodesPerSeason: [9, 7],
+    communityRating: 4.4,
+    ratingsCount: 3150,
+    ratingDistribution: [11, 18, 35, 75, 165, 350, 710, 1060, 1180, 1290],
+    crossMediaLinks: [
+      { targetId: 'book-301', relationType: 'companion', relationLabel: 'Survival & Humanity · Book', relation: 'Survival & Humanity · Book', isAdaptation: false },
+      { targetId: 'book-306', relationType: 'adaptation', relationLabel: 'Brutal Frontier Journey · Book', relation: 'Brutal Frontier Journey · Book', isAdaptation: true },
+      { targetId: 'movie-104', relationType: 'thematic', relationLabel: 'Post-Collapse Odyssey · Film', relation: 'Post-Collapse Odyssey · Film', isAdaptation: false },
+      { targetId: 'tv-206', relationType: 'companion', relationLabel: 'Created by Craig Mazin · TV', relation: 'Created by Craig Mazin · TV', isAdaptation: false }
+    ]
+  },
+
+  // ==================== BOOKS (8) ====================
+  {
+    id: 'book-301',
+    type: 'book',
+    title: 'Project Hail Mary',
+    year: 2021,
+    creator: 'Andy Weir',
+    posterUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Publication211/v4/13/fb/63/13fb6355-fce2-0e4b-08b7-48452037759a/9780593135211.d.jpg/600x900bb.jpg',
+    fallbackPosterUrl: buildPosterUrl('book-301', 'Project Hail Mary', 'Andy Weir', 2021, 'book', '#f59e0b', '#1e1b4b'),
+    synopsis: 'Ryland Grace is the sole survivor on a desperate, last-chance mission—and if he fails, humanity and the earth itself will perish. Except that right now, he doesn’t know that. He can’t even remember his own name.',
+    genres: ['Sci-Fi', 'Thriller', 'Adventure'],
+    pagesCount: 476,
+    communityRating: 4.7,
+    ratingsCount: 3940,
+    ratingDistribution: [8, 12, 22, 48, 95, 220, 510, 1080, 1590, 2110],
+    crossMediaLinks: [
+      { targetId: 'movie-101', relationType: 'adaptation', relationLabel: 'Interstellar Epic · Film', relation: 'Interstellar Epic · Film', isAdaptation: true },
+      { targetId: 'tv-208', relationType: 'companion', relationLabel: 'High-Stakes Survival · TV', relation: 'High-Stakes Survival · TV', isAdaptation: false },
+      { targetId: 'book-304', relationType: 'companion', relationLabel: 'First Contact Science · Book', relation: 'First Contact Science · Book', isAdaptation: false },
+      { targetId: 'tv-206', relationType: 'thematic', relationLabel: 'Scientific Crisis · TV', relation: 'Scientific Crisis · TV', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'book-302',
+    type: 'book',
+    title: 'Dune',
+    year: 1965,
+    creator: 'Frank Herbert',
+    posterUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Publication122/v4/85/70/2f/85702f34-2982-e2ee-d883-b5ffc3ae0897/9781101658055.d.jpg/600x900bb.jpg',
+    fallbackPosterUrl: buildPosterUrl('book-302', 'Dune', 'Frank Herbert', 1965, 'book', '#ea580c', '#27170c'),
+    synopsis: 'Set on the desert planet Arrakis, Dune is the story of the boy Paul Atreides, heir to a noble family tasked with ruling an inhospitable world where the only thing of value is the “spice” melange.',
+    genres: ['Sci-Fi', 'Fantasy', 'Adventure'],
+    pagesCount: 688,
+    communityRating: 4.6,
+    ratingsCount: 5120,
+    ratingDistribution: [14, 19, 36, 78, 160, 340, 720, 1340, 1790, 2390],
+    crossMediaLinks: [
+      { targetId: 'movie-101', relationType: 'adaptation', relationLabel: 'Feature Film Adaptation (Denis Villeneuve)', relation: 'Feature Film Adaptation (Denis Villeneuve)', isAdaptation: true },
+      { targetId: 'tv-205', relationType: 'companion', relationLabel: 'Feudal Intrigue · TV', relation: 'Feudal Intrigue · TV', isAdaptation: false },
+      { targetId: 'tv-207', relationType: 'companion', relationLabel: 'Imperial Rebellion · TV', relation: 'Imperial Rebellion · TV', isAdaptation: false },
+      { targetId: 'movie-104', relationType: 'thematic', relationLabel: 'Denis Villeneuve Sci-Fi · Film', relation: 'Denis Villeneuve Sci-Fi · Film', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'book-303',
+    type: 'book',
+    title: 'Tomorrow, and Tomorrow, and Tomorrow',
+    year: 2022,
+    creator: 'Gabrielle Zevin',
+    posterUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Publication221/v4/0a/52/d9/0a52d9fc-a8cc-af1d-fe3a-5d27e9858212/9780593321218.d.jpg/600x900bb.jpg',
+    fallbackPosterUrl: buildPosterUrl('book-303', 'Tomorrow, and Tomorrow, and Tomorrow', 'Gabrielle Zevin', 2022, 'book', '#ec4899', '#1e1b4b'),
+    synopsis: 'Spanning thirty years, from Cambridge, Massachusetts, to Venice Beach, California, two childhood friends—often in love, but never lovers—come together as creative partners in the exuberant world of video game design.',
+    genres: ['Drama', 'Romance'],
+    pagesCount: 416,
+    communityRating: 4.4,
+    ratingsCount: 3480,
+    ratingDistribution: [12, 20, 42, 88, 185, 390, 740, 1120, 1240, 1380],
+    crossMediaLinks: [
+      { targetId: 'movie-102', relationType: 'adaptation', relationLabel: 'Decades-Long Bond · Film', relation: 'Decades-Long Bond · Film', isAdaptation: true },
+      { targetId: 'tv-203', relationType: 'companion', relationLabel: 'Creative Partnership · TV', relation: 'Creative Partnership · TV', isAdaptation: false },
+      { targetId: 'movie-106', relationType: 'thematic', relationLabel: 'Visual Artistry · Film', relation: 'Visual Artistry · Film', isAdaptation: false },
+      { targetId: 'tv-204', relationType: 'thematic', relationLabel: 'Interactive Worlds · TV', relation: 'Interactive Worlds · TV', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'book-304',
+    type: 'book',
+    title: 'The Three-Body Problem',
+    year: 2008,
+    creator: 'Liu Cixin',
+    posterUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Publication211/v4/25/2f/92/252f926a-1db7-c938-3477-8e78d29e8704/9781466853447.jpg/600x900bb.jpg',
+    fallbackPosterUrl: buildPosterUrl('book-304', 'The Three-Body Problem', 'Liu Cixin', 2008, 'book', '#0ea5e9', '#082f49'),
+    synopsis: 'Set against the backdrop of China’s Cultural Revolution, a secret military project sends signals into space to establish contact with aliens. An alien civilization on the brink of destruction captures the signal and plans to invade Earth.',
+    genres: ['Sci-Fi', 'Mystery', 'Thriller'],
+    pagesCount: 399,
+    communityRating: 4.3,
+    ratingsCount: 2890,
+    ratingDistribution: [15, 24, 52, 110, 230, 460, 790, 990, 1020, 1080],
+    crossMediaLinks: [
+      { targetId: 'movie-107', relationType: 'companion', relationLabel: 'Theoretical Physics & Fate · Film', relation: 'Theoretical Physics & Fate · Film', isAdaptation: false },
+      { targetId: 'tv-206', relationType: 'companion', relationLabel: 'Historical Secret Project · TV', relation: 'Historical Secret Project · TV', isAdaptation: false },
+      { targetId: 'book-301', relationType: 'companion', relationLabel: 'Hard Sci-Fi Companion · Book', relation: 'Hard Sci-Fi Companion · Book', isAdaptation: false },
+      { targetId: 'tv-201', relationType: 'thematic', relationLabel: 'High-Concept Sci-Fi Mystery · TV', relation: 'High-Concept Sci-Fi Mystery · TV', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'book-305',
+    type: 'book',
+    title: 'Piranesi',
+    year: 2020,
+    creator: 'Susanna Clarke',
+    posterUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Publication116/v4/2c/2e/b4/2c2eb4b8-6a28-c926-b0ed-03fbd7ed2ce0/1031214040.jpg/600x900bb.jpg',
+    fallbackPosterUrl: buildPosterUrl('book-305', 'Piranesi', 'Susanna Clarke', 2020, 'book', '#8b5cf6', '#1e1b4b'),
+    synopsis: 'Piranesi’s house is no ordinary building: its rooms are infinite, its corridors endless, its walls are lined with thousands upon thousands of statues, each one different from all the others.',
+    genres: ['Fantasy', 'Mystery', 'Sci-Fi'],
+    pagesCount: 245,
+    communityRating: 4.5,
+    ratingsCount: 2640,
+    ratingDistribution: [7, 11, 25, 58, 125, 280, 560, 920, 1110, 1280],
+    crossMediaLinks: [
+      { targetId: 'tv-201', relationType: 'companion', relationLabel: 'Surreal Halls & Mystery · TV', relation: 'Surreal Halls & Mystery · TV', isAdaptation: false },
+      { targetId: 'movie-103', relationType: 'thematic', relationLabel: 'Alternate Realities · Film', relation: 'Alternate Realities · Film', isAdaptation: false },
+      { targetId: 'movie-108', relationType: 'thematic', relationLabel: 'Haunting Atmosphere · Film', relation: 'Haunting Atmosphere · Film', isAdaptation: false },
+      { targetId: 'movie-104', relationType: 'thematic', relationLabel: 'Identity & Solitude Mystery · Film', relation: 'Identity & Solitude Mystery · Film', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'book-306',
+    type: 'book',
+    title: 'Blood Meridian',
+    year: 1985,
+    creator: 'Cormac McCarthy',
+    posterUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Publication221/v4/99/e9/c5/99e9c5a3-0818-b79a-e4c7-f815120388b1/9780307762528.d.jpg/600x900bb.jpg',
+    fallbackPosterUrl: buildPosterUrl('book-306', 'Blood Meridian', 'Cormac McCarthy', 1985, 'book', '#b91c1c', '#1c1917'),
+    synopsis: 'An epic novel of the violence and depravity that attended America’s westward expansion, brilliantly subverting the conventions of the Western novel and the mythology of the Wild West.',
+    genres: ['Drama', 'History'],
+    pagesCount: 337,
+    communityRating: 4.6,
+    ratingsCount: 2310,
+    ratingDistribution: [10, 14, 28, 52, 105, 210, 440, 780, 1090, 1390],
+    crossMediaLinks: [
+      { targetId: 'tv-208', relationType: 'adaptation', relationLabel: 'Unforgiving Landscape · TV', relation: 'Unforgiving Landscape · TV', isAdaptation: true },
+      { targetId: 'movie-107', relationType: 'companion', relationLabel: 'Historical Darkness · Film', relation: 'Historical Darkness · Film', isAdaptation: false },
+      { targetId: 'movie-105', relationType: 'thematic', relationLabel: 'Moral Reckoning · Film', relation: 'Moral Reckoning · Film', isAdaptation: false },
+      { targetId: 'tv-205', relationType: 'companion', relationLabel: 'Unforgiving Historical Epic · TV', relation: 'Unforgiving Historical Epic · TV', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'book-307',
+    type: 'book',
+    title: 'Klara and the Sun',
+    year: 2021,
+    creator: 'Kazuo Ishiguro',
+    posterUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Publication116/v4/ba/7b/b0/ba7bb051-38ad-3553-98a4-1c93b41c0fbd/9780593318188.d.jpg/600x900bb.jpg',
+    fallbackPosterUrl: buildPosterUrl('book-307', 'Klara and the Sun', 'Kazuo Ishiguro', 2021, 'book', '#eab308', '#1f2937'),
+    synopsis: 'From her place in the store, Klara, an Artificial Friend with outstanding observational qualities, watches carefully the behavior of those who come in to browse, and of those who pass on the street outside.',
+    genres: ['Sci-Fi', 'Drama'],
+    pagesCount: 303,
+    communityRating: 4.2,
+    ratingsCount: 1980,
+    ratingDistribution: [10, 18, 40, 95, 190, 380, 620, 790, 810, 740],
+    crossMediaLinks: [
+      { targetId: 'movie-104', relationType: 'adaptation', relationLabel: 'Artificial Devotion · Film', relation: 'Artificial Devotion · Film', isAdaptation: true },
+      { targetId: 'tv-201', relationType: 'companion', relationLabel: 'Synthetic Identity · TV', relation: 'Synthetic Identity · TV', isAdaptation: false },
+      { targetId: 'movie-102', relationType: 'thematic', relationLabel: 'Quiet Melancholy · Film', relation: 'Quiet Melancholy · Film', isAdaptation: false },
+      { targetId: 'tv-208', relationType: 'thematic', relationLabel: 'Protective Bond Sci-Fi · TV', relation: 'Protective Bond Sci-Fi · TV', isAdaptation: false }
+    ]
+  },
+  {
+    id: 'book-308',
+    type: 'book',
+    title: 'The Left Hand of Darkness',
+    year: 1969,
+    creator: 'Ursula K. Le Guin',
+    posterUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Publication211/v4/33/13/9c/33139cdd-1a27-94a4-1d8e-29c3bbf39b38/9781101665398.d.jpg/600x900bb.jpg',
+    fallbackPosterUrl: buildPosterUrl('book-308', 'The Left Hand of Darkness', 'Ursula K. Le Guin', 1969, 'book', '#38bdf8', '#0f172a'),
+    synopsis: 'A lone human ambassador is sent to Winter, an alien world without sexual prejudice, where the inhabitants can change their gender whenever they choose. His goal is to facilitate Winter’s inclusion in a growing intergalactic civilization.',
+    genres: ['Sci-Fi', 'Fantasy', 'Drama'],
+    pagesCount: 304,
+    communityRating: 4.6,
+    ratingsCount: 2560,
+    ratingDistribution: [5, 9, 20, 45, 95, 220, 490, 840, 1120, 1340],
+    crossMediaLinks: [
+      { targetId: 'book-302', relationType: 'companion', relationLabel: 'Twin Pillars of Sci-Fi · Book', relation: 'Twin Pillars of Sci-Fi · Book', isAdaptation: false },
+      { targetId: 'tv-207', relationType: 'companion', relationLabel: 'Political Sci-Fi · TV', relation: 'Political Sci-Fi · TV', isAdaptation: false },
+      { targetId: 'movie-101', relationType: 'companion', relationLabel: 'Off-World Anthropology · Film', relation: 'Off-World Anthropology · Film', isAdaptation: false },
+      { targetId: 'movie-108', relationType: 'thematic', relationLabel: 'Intimate Two-Person Journey · Film', relation: 'Intimate Two-Person Journey · Film', isAdaptation: false }
+    ]
+  }
+];
+
+export const INITIAL_USERS = {};
+
+export const INITIAL_LOGS = [];
+
+export const INITIAL_WATCHLIST = [];
+
+export const INITIAL_LISTS = [];
+

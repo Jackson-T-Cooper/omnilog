@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: omnilog
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GITHUB_GIST_TOKEN
+        sync: false
+      - key: CLOUD_BACKUP_SECRET
+        generateValue: true

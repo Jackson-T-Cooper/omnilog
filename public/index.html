@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1f140e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Omnilog" />
+  <title>Omnilog — Movies, TV Shows &amp; Books</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/api/app-icon.svg" />
+  <link rel="icon" type="image/svg+xml" href="/api/app-icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..600&family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="#explore" class="brand" data-nav-view="explore">
+        <span class="brand-emblem" aria-hidden="true">O</span>
+        <span class="brand-title-stack">
+          <span class="brand-text">Omnilog</span>
+          <span class="brand-tag">Movies · TV Shows · Books</span>
+        </span>
+      </a>
+
+      <nav class="main-nav" aria-label="Primary Navigation">
+        <button type="button" class="nav-btn is-active" data-nav-view="explore" id="nav-explore">
+          Explore
+        </button>
+        <button type="button" class="nav-btn" data-nav-view="feed" id="nav-feed">
+          Feed
+        </button>
+        <button type="button" class="nav-btn" data-nav-view="diary" id="nav-diary">
+          Diary
+          <span class="nav-badge" id="navDiaryCount">0</span>
+        </button>
+        <button type="button" class="nav-btn" data-nav-view="watchlist" id="nav-watchlist">
+          Watchlist
+          <span class="nav-badge" id="navWatchlistCount">0</span>
+        </button>
+        <button type="button" class="nav-btn" data-nav-view="lists" id="nav-lists">
+          Lists
+        </button>
+        <button type="button" class="nav-btn" data-nav-view="profile" id="nav-profile">
+          Profile
+        </button>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="btn btn-primary btn-log-cta" id="openLogModalBtn">
+          + Log
+        </button>
+        <div class="header-user-controls" id="headerUserControls"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main" id="appMain">
+    <!-- ==================== VIEW 1: EXPLORE / CATALOG ==================== -->
+    <section class="view-section" id="view-explore" aria-labelledby="exploreHeading">
+      <div class="hero-banner">
+        <div class="hero-copy">
+          <p class="eyebrow">A home for what you watch &amp; read</p>
+          <h1 id="exploreHeading">Keep track of the films, shows, and books you love.</h1>
+          <p class="hero-sub">
+            Keep a personal diary of everything you watch and read, rate on a half-star scale, save titles for later, and share notes with friends.
+          </p>
+        </div>
+        <div class="hero-quick-stats" id="heroQuickStats"></div>
+      </div>
+
+      <div class="controls-bar" role="region" aria-label="Catalog Filters and Search">
+        <div class="medium-tabs" role="tablist" aria-label="Filter by Media Type">
+          <button type="button" role="tab" aria-selected="true" class="pill-tab is-active" data-filter-type="all">
+            All
+          </button>
+          <button type="button" role="tab" aria-selected="false" class="pill-tab" data-filter-type="movie">
+            Movies
+          </button>
+          <button type="button" role="tab" aria-selected="false" class="pill-tab" data-filter-type="tv">
+            TV Shows
+          </button>
+          <button type="button" role="tab" aria-selected="false" class="pill-tab" data-filter-type="book">
+            Books
+          </button>
+        </div>
+
+        <div class="search-and-selects">
+          <div class="search-box">
+            <input
+              type="search"
+              id="catalogSearchInput"
+              placeholder="Search movies, TV shows, books, creators..."
+              aria-label="Search catalog or online APIs"
+            />
+            <button type="button" class="btn btn-secondary btn-sm" id="liveApiSearchBtn" title="Search iTunes, TVMaze &amp; Open Library">
+              Search More Online
+            </button>
+          </div>
+
+          <select id="genreFilterSelect" aria-label="Filter by Genre">
+            <option value="all">All Genres</option>
+            <option value="Sci-Fi">Sci-Fi</option>
+            <option value="Drama">Drama</option>
+            <option value="Thriller">Thriller</option>
+            <option value="Mystery">Mystery</option>
+            <option value="Romance">Romance</option>
+            <option value="Comedy">Comedy</option>
+            <option value="Fantasy">Fantasy</option>
+            <option value="Adventure">Adventure</option>
+            <option value="Animation">Animation</option>
+            <option value="History">History</option>
+          </select>
+
+          <select id="sortFilterSelect" aria-label="Sort Catalog">
+            <option value="popular">Sort: Popularity</option>
+            <option value="rating">Sort: Highest Rated</option>
+            <option value="newest">Sort: Newest</option>
+            <option value="oldest">Sort: Oldest</option>
+            <option value="title">Sort: Title (A–Z)</option>
+          </select>
+
+          <button type="button" class="btn btn-ghost btn-sm" id="openCustomMediaBtn" data-open-custom-media="true">
+            + Add Custom Title
+          </button>
+        </div>
+      </div>
+
+      <!-- Live External API Search Results Container -->
+      <div class="external-results-panel hidden" id="externalResultsPanel" aria-live="polite">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">ONLINE SEARCH RESULTS</p>
+            <h2>Results from iTunes, TVMaze &amp; Open Library</h2>
+            <p class="section-sub" id="externalSearchStatus">Click any title to view details, log it, or add it to your watchlist.</p>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" id="clearExternalResultsBtn">Close Results</button>
+        </div>
+        <div class="cards-grid wood-shelf" id="externalCardsGrid"></div>
+      </div>
+
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">IN PROGRESS</p>
+          <h2 id="currentlyTrackingTitle">Currently Watching &amp; Reading</h2>
+          <p class="section-sub" id="currentlyTrackingCountLabel">Track active seasons, episodes, and pages with one tap</p>
+        </div>
+      </div>
+
+      <div class="cards-grid wood-shelf currently-shelf" id="currentlyTrackingGrid" style="margin-bottom: 2rem;"></div>
+
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">CATALOG</p>
+          <h2 id="catalogSectionTitle">Popular Movies, TV Shows &amp; Books</h2>
+          <p class="section-sub" id="catalogCountLabel">Showing 24 titles across Movies, TV Shows, and Books</p>
+        </div>
+      </div>
+
+      <div class="cards-grid wood-shelf" id="catalogGrid"></div>
+    </section>
+
+    <!-- ==================== VIEW 2: SOCIAL ACTIVITY FEED ==================== -->
+    <section class="view-section hidden" id="view-feed" aria-labelledby="feedHeading">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">SOCIAL</p>
+          <h1 id="feedHeading">Activity Feed</h1>
+          <p class="section-sub">Recent ratings, reviews, and progress updates from you, your family, and friends.</p>
+        </div>
+        <div style="display:flex;gap:0.65rem;flex-wrap:wrap;align-items:center;">
+          <div class="medium-tabs" role="tablist" aria-label="Filter Activity Feed by Scope">
+            <button type="button" class="pill-tab is-active" data-feed-scope="all">All Members</button>
+            <button type="button" class="pill-tab" data-feed-scope="following">Following</button>
+          </div>
+          <div class="medium-tabs" role="tablist" aria-label="Filter Activity Feed by Medium">
+            <button type="button" class="pill-tab is-active" data-feed-type="all">All</button>
+            <button type="button" class="pill-tab" data-feed-type="movie">Movies</button>
+            <button type="button" class="pill-tab" data-feed-type="tv">TV Shows</button>
+            <button type="button" class="pill-tab" data-feed-type="book">Books</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="family-friends-strip" id="feedFriendsDirectory" style="margin-bottom: 1.5rem;"></div>
+
+      <div class="feed-stream" id="activityFeedContainer"></div>
+    </section>
+
+    <!-- ==================== VIEW 3: DIARY ==================== -->
+    <section class="view-section hidden" id="view-diary" aria-labelledby="diaryHeading">
+      <div class="section-header" id="diaryFilterBar">
+        <div>
+          <p class="eyebrow">HISTORY</p>
+          <h1 id="diaryHeading">Your Diary</h1>
+          <p class="section-sub">Everything you have watched and read, organized by date.</p>
+        </div>
+        <div style="display:flex;gap:0.65rem;flex-wrap:wrap;align-items:center;">
+          <button type="button" class="btn btn-ghost btn-sm" id="exportDiaryCsvBtn" data-export-diary-csv="true">
+            Export CSV
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="diaryImportLetterboxdBtn" data-open-user-modal="letterboxd">
+            Import from Letterboxd
+          </button>
+          <div class="medium-tabs" role="tablist" aria-label="Filter Diary by Medium">
+            <button type="button" class="pill-tab is-active" data-diary-type="all">All</button>
+            <button type="button" class="pill-tab" data-diary-type="movie">Movies</button>
+            <button type="button" class="pill-tab" data-diary-type="tv">TV Shows</button>
+            <button type="button" class="pill-tab" data-diary-type="book">Books</button>
+          </div>
+          <button type="button" class="pill-tab" id="diaryLikedFilterBtn" aria-pressed="false">
+            ♥ Liked
+          </button>
+          <input
+            type="search"
+            id="diarySearchInput"
+            placeholder="Filter diary..."
+            aria-label="Search diary entries"
+            style="max-width:175px;padding:0.42rem 0.7rem;font-size:0.84rem;"
+          />
+          <select id="diarySortSelect" aria-label="Sort Diary">
+            <option value="newest">Sort: Newest First</option>
+            <option value="oldest">Sort: Oldest First</option>
+            <option value="rating">Sort: Highest Rated</option>
+            <option value="title">Sort: Title (A–Z)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="diary-table-wrapper" id="diaryContainer"></div>
+    </section>
+
+    <!-- ==================== VIEW 4: WATCHLIST ==================== -->
+    <section class="view-section hidden" id="view-watchlist" aria-labelledby="watchlistHeading">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">SAVED FOR LATER</p>
+          <h1 id="watchlistHeading">Watchlist</h1>
+          <p class="section-sub">Movies, TV shows, and books you want to watch or read next.</p>
+        </div>
+        <div style="display:flex;gap:0.65rem;flex-wrap:wrap;align-items:center;">
+          <div class="medium-tabs" role="tablist" aria-label="Filter Watchlist by Medium">
+            <button type="button" class="pill-tab is-active" data-watchlist-type="all">All</button>
+            <button type="button" class="pill-tab" data-watchlist-type="movie">Movies</button>
+            <button type="button" class="pill-tab" data-watchlist-type="tv">TV Shows</button>
+            <button type="button" class="pill-tab" data-watchlist-type="book">Books</button>
+          </div>
+          <select id="watchlistSortSelect" aria-label="Sort Watchlist">
+            <option value="added">Sort: Recently Added</option>
+            <option value="rating">Sort: Highest Rated</option>
+            <option value="year">Sort: Release Year</option>
+            <option value="title">Sort: Title (A–Z)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="cards-grid wood-shelf" id="watchlistGrid"></div>
+    </section>
+
+    <!-- ==================== VIEW 5: CUSTOM LISTS ==================== -->
+    <section class="view-section hidden" id="view-lists" aria-labelledby="listsHeading">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">COLLECTIONS</p>
+          <h1 id="listsHeading">Custom Lists</h1>
+          <p class="section-sub">Curated lists across movies, TV shows, and books.</p>
+        </div>
+        <button type="button" class="btn btn-primary" id="openCreateListBtn">
+          + New List
+        </button>
+      </div>
+
+      <div class="lists-container" id="listsContainer"></div>
+    </section>
+
+    <!-- ==================== VIEW 6: PROFILE & STATS ==================== -->
+    <section class="view-section hidden" id="view-profile" aria-labelledby="profileHeading">
+      <div class="viewing-friend-banner hidden" id="viewingFriendBanner"></div>
+
+      <div class="family-friends-strip" id="profileFriendsDirectory" style="margin-bottom: 1.4rem;"></div>
+
+      <div class="profile-header-card" id="profileHeaderCard"></div>
+
+      <div class="profile-milestones-strip" id="profileMilestonesGrid"></div>
+
+      <div class="profile-stats-grid" id="profileStatsGrid"></div>
+
+      <!-- Currently Watching & Reading on Profile -->
+      <div class="currently-profile-section" style="margin-bottom: 2rem;">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">IN PROGRESS</p>
+            <h2 id="profileCurrentlyHeading">Currently Watching &amp; Reading</h2>
+            <p class="section-sub" id="profileCurrentlySub">Your active TV shows and books with one-tap progress controls.</p>
+          </div>
+        </div>
+        <div class="cards-grid wood-shelf currently-shelf" id="profileCurrentlyGrid"></div>
+      </div>
+
+      <!-- Top 4 Favorites per Medium -->
+      <div class="favorites-showcase-section">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">FAVORITES</p>
+            <h2 id="profileFavoritesHeading">Top 4 Favorites</h2>
+            <p class="section-sub" id="profileFavoritesSub">Click any poster below to edit your Top 4 Movies, TV Shows, or Books.</p>
+          </div>
+        </div>
+        <div class="favorites-medium-columns" id="profileFavoritesContainer"></div>
+      </div>
+
+      <!-- Rating Histogram & Recent Diary -->
+      <div class="profile-lower-grid">
+        <div class="histogram-card" id="profileHistogramCard"></div>
+        <div class="recent-logs-card" id="profileRecentLogsCard"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== MODAL 1: LOG + REVIEW DIALOG ==================== -->
+  <!-- MANDATORY MWG: closedby="any" and aria-labelledby -->
+  <dialog id="logDialog" closedby="any" aria-labelledby="logDialogTitle" class="modal-dialog">
+    <form id="logForm" method="dialog" class="modal-form">
+      <header class="modal-header">
+        <div>
+          <p class="eyebrow" id="logModalEyebrow">LOG ENTRY</p>
+          <h2 id="logDialogTitle">Log or Review</h2>
+        </div>
+        <button type="button" class="btn-icon-close" data-close-dialog="logDialog" aria-label="Close dialog">&times;</button>
+      </header>
+
+      <input type="hidden" id="logEditId" value="" />
+
+      <div class="form-group">
+        <label for="logMediaSelect">Title</label>
+        <select id="logMediaSelect" required></select>
+      </div>
+
+      <div class="selected-media-preview" id="logMediaPreview"></div>
+
+      <div class="form-row-split">
+        <!-- Interactive Half-Star Rating Widget (0.5 to 5.0) -->
+        <div class="form-group">
+          <label for="logRatingInput" id="starRatingLabel">Rating (0.5 to 5.0 Stars)</label>
+          <div class="half-star-widget" role="radiogroup" aria-labelledby="starRatingLabel" id="halfStarWidget">
+            <div class="star-Visual-track" id="starVisualTrack"></div>
+            <input
+              type="range"
+              id="logRatingInput"
+              min="0.5"
+              max="5"
+              step="0.5"
+              value="4.5"
+              style="--progress: 88%;"
+              aria-label="Star rating from 0.5 to 5.0 in 0.5 steps"
+            />
+            <div class="star-quick-steps">
+              <button type="button" class="step-pill" data-set-rating="2.5">2.5★</button>
+              <button type="button" class="step-pill" data-set-rating="3.5">3.5★</button>
+              <button type="button" class="step-pill" data-set-rating="4.0">4.0★</button>
+              <button type="button" class="step-pill" data-set-rating="4.5">4.5★</button>
+              <button type="button" class="step-pill" data-set-rating="5.0">5.0★</button>
+            </div>
+            <output id="logRatingOutput" for="logRatingInput" class="rating-readout">★★★★½ (4.5 / 5.0)</output>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="logDateInput">Date</label>
+          <input type="date" id="logDateInput" required />
+
+          <div class="toggles-row">
+            <label class="toggle-chip" for="logLikedInput">
+              <input type="checkbox" id="logLikedInput" class="visually-hidden" checked />
+              <span>♥ Liked</span>
+            </label>
+            <label class="toggle-chip" for="logRewatchInput">
+              <input type="checkbox" id="logRewatchInput" class="visually-hidden" />
+              <span id="rewatchLabelText">↻ Rewatch</span>
+            </label>
+            <label class="toggle-chip" for="logSpoilerInput">
+              <input type="checkbox" id="logSpoilerInput" class="visually-hidden" />
+              <span>⚠️ Contains Spoilers</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Medium-Specific Progress Tracking -->
+      <div class="progress-fields-box" id="progressFieldsBox">
+        <div class="progress-fields-group" id="tvProgressGroup">
+          <div class="form-group">
+            <label for="logTvSeason">Season</label>
+            <input type="number" id="logTvSeason" min="1" max="50" value="1" />
+          </div>
+          <div class="form-group">
+            <label for="logTvEpisode">Episode</label>
+            <input type="number" id="logTvEpisode" min="1" max="500" value="1" />
+          </div>
+          <div class="form-group">
+            <label for="logTvStatus">Status</label>
+            <select id="logTvStatus">
+              <option value="completed">Completed</option>
+              <option value="watching">Watching</option>
+              <option value="in_progress">Watching (In Progress)</option>
+              <option value="dropped">Dropped</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="progress-fields-group hidden" id="bookProgressGroup">
+          <div class="form-group">
+            <label for="logBookCurrentPage">Current Page</label>
+            <input type="number" id="logBookCurrentPage" min="1" max="5000" value="300" />
+          </div>
+          <div class="form-group">
+            <label for="logBookTotalPages">Total Pages</label>
+            <input type="number" id="logBookTotalPages" min="1" max="5000" value="300" />
+          </div>
+          <div class="form-group">
+            <label for="logBookStatus">Status</label>
+            <select id="logBookStatus">
+              <option value="completed">Completed</option>
+              <option value="reading">Reading</option>
+              <option value="in_progress">Reading (In Progress)</option>
+              <option value="dropped">Dropped</option>
+            </select>
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label for="bookReadingProgress">Reading Progress (<span id="bookProgressPctLabel">100%</span>)</label>
+            <progress id="bookReadingProgress" max="100" value="100">100%</progress>
+          </div>
+        </div>
+
+        <div class="progress-fields-group hidden" id="movieProgressGroup">
+          <div class="form-group">
+            <label for="logMovieFormat">Format</label>
+            <select id="logMovieFormat">
+              <option value="Theater">Theater</option>
+              <option value="IMAX / 70mm">IMAX / 70mm</option>
+              <option value="Streaming">Streaming</option>
+              <option value="4K UHD / Blu-ray">4K UHD / Blu-ray</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="logReviewInput">Review</label>
+        <textarea
+          id="logReviewInput"
+          rows="4"
+          placeholder="Write a review or notes..."
+        ></textarea>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-close-dialog="logDialog">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="saveLogSubmitBtn">Save Entry</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- ==================== MODAL 2: MEDIA DETAIL DIALOG ==================== -->
+  <dialog id="detailDialog" closedby="any" aria-labelledby="detailDialogTitle" class="modal-dialog modal-dialog-wide">
+    <div id="detailDialogContent" class="detail-modal-inner">
+      <h2 id="detailDialogTitle" class="sr-only">Media Details</h2>
+    </div>
+  </dialog>
+
+  <!-- ==================== MODAL 3: CREATE CUSTOM LIST DIALOG ==================== -->
+  <dialog id="listDialog" closedby="any" aria-labelledby="listDialogTitle" class="modal-dialog">
+    <form id="createListForm" method="dialog" class="modal-form">
+      <header class="modal-header">
+        <div>
+          <p class="eyebrow" id="listModalEyebrow">NEW LIST</p>
+          <h2 id="listDialogTitle">Create List</h2>
+        </div>
+        <button type="button" class="btn-icon-close" data-close-dialog="listDialog" aria-label="Close dialog">&times;</button>
+      </header>
+
+      <input type="hidden" id="listEditId" value="" />
+
+      <div class="form-group">
+        <label for="listTitleInput">List Title</label>
+        <input
+          type="text"
+          id="listTitleInput"
+          placeholder="e.g., Favorite Sci-Fi Across Movies, TV &amp; Books"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="listDescInput">Description</label>
+        <textarea
+          id="listDescInput"
+          rows="2"
+          placeholder="What is this list about?"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="toggle-chip" for="listRankedInput">
+          <input type="checkbox" id="listRankedInput" class="visually-hidden" checked />
+          <span>Ranked List (#1, #2, #3...)</span>
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label>Select Titles</label>
+        <div class="list-picker-grid" id="listItemsPicker"></div>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-close-dialog="listDialog">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="saveListSubmitBtn">Create List</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- ==================== MODAL 4: FAVORITE SLOT PICKER DIALOG ==================== -->
+  <dialog id="favoritePickerDialog" closedby="any" aria-labelledby="favoritePickerTitle" class="modal-dialog">
+    <form id="favoritePickerForm" method="dialog" class="modal-form">
+      <header class="modal-header">
+        <div>
+          <p class="eyebrow">TOP 4 FAVORITES</p>
+          <h2 id="favoritePickerTitle">Edit Top 4 Favorite</h2>
+        </div>
+        <button type="button" class="btn-icon-close" data-close-dialog="favoritePickerDialog" aria-label="Close dialog">&times;</button>
+      </header>
+      <input type="hidden" id="favPickerMedium" value="movie" />
+      <input type="hidden" id="favPickerSlotIndex" value="0" />
+      <div class="form-group">
+        <label for="favPickerSelect">Choose Title</label>
+        <select id="favPickerSelect"></select>
+      </div>
+      <footer class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-close-dialog="favoritePickerDialog">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Favorite</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- ==================== MODAL 5: ACCOUNT & PROFILE DIALOG ==================== -->
+  <dialog id="userDialog" closedby="any" aria-labelledby="userDialogTitle" class="modal-dialog modal-dialog-compact">
+    <div class="modal-form auth-modal-container">
+      <header class="modal-header">
+        <div>
+          <p class="eyebrow" id="userModalEyebrow">Omnilog</p>
+          <h2 id="userDialogTitle">Create your account</h2>
+        </div>
+        <button type="button" class="btn-icon-close" data-close-dialog="userDialog" aria-label="Close dialog">&times;</button>
+      </header>
+
+      <div class="filter-pills auth-mode-tabs" role="tablist" aria-label="Account Modes">
+        <button type="button" class="pill is-active" data-auth-tab="signup" id="authTabSignup">Create account</button>
+        <button type="button" class="pill" data-auth-tab="login" id="authTabLogin">Sign in</button>
+        <button type="button" class="pill" data-auth-tab="letterboxd" id="authTabLetterboxd">Letterboxd</button>
+        <button type="button" class="pill" data-auth-tab="edit" id="authTabEdit">Edit profile</button>
+      </div>
+
+      <div id="authModalFeedback" class="auth-feedback-banner hidden" role="status" aria-live="polite"></div>
+
+      <!-- FORM A: 4-SCREEN STEP-BY-STEP SIGN UP WIZARD & EDIT PROFILE (#userProfileForm) -->
+      <form id="userProfileForm" method="dialog" class="auth-tab-panel" novalidate>
+        <input type="hidden" id="userFormMode" value="create" />
+        <input type="hidden" id="userEditId" value="" />
+        <input type="hidden" id="signupCurrentStepInput" value="1" />
+
+        <!-- STEP INDICATOR HEADER (Shown during Sign Up) -->
+        <div class="signup-wizard-header" id="signupWizardHeader">
+          <span class="signup-step-counter" id="signupStepCounter">Step 1 of 4</span>
+          <div class="signup-step-dots" role="progressbar" aria-label="Sign up progress" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1" id="signupStepDots">
+            <span class="signup-step-dot is-active" data-step-dot="1"></span>
+            <span class="signup-step-dot" data-step-dot="2"></span>
+            <span class="signup-step-dot" data-step-dot="3"></span>
+            <span class="signup-step-dot" data-step-dot="4"></span>
+          </div>
+        </div>
+
+        <!-- SCREEN 1: USERNAME -->
+        <div class="signup-step-screen" id="signupStep1" data-signup-step="1">
+          <div class="signup-step-intro" id="signupStep1Intro">
+            <h3 class="signup-step-title">First, pick a username</h3>
+            <p class="signup-step-sub">This is how friends will find your reviews and shelves.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="userHandleInput" id="userHandleLabel">Username</label>
+            <input
+              type="text"
+              id="userHandleInput"
+              autocomplete="username"
+              placeholder="jackson"
+              required
+            />
+          </div>
+
+          <div class="signup-step-footer" id="signupStep1Footer">
+            <button type="button" class="btn-link-subtle" id="signupSwitchToLoginBtn" data-auth-tab="login">
+              Already have an account? Sign in
+            </button>
+            <button type="button" class="btn btn-primary" id="signupNextStep1Btn" data-signup-next="2">
+              Continue
+            </button>
+          </div>
+        </div>
+
+        <!-- SCREEN 2: EMAIL -->
+        <div id="signupCredentialsSection" class="auth-credentials-box">
+          <div class="signup-step-screen hidden" id="signupStep2" data-signup-step="2" hidden>
+            <div class="signup-step-intro">
+              <h3 class="signup-step-title">What's your email address?</h3>
+              <p class="signup-step-sub">Just for signing in to your account.</p>
+            </div>
+
+            <div class="form-group">
+              <label for="userEmailInput">Email</label>
+              <input
+                type="email"
+                id="userEmailInput"
+                autocomplete="email"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div class="signup-step-footer">
+              <button type="button" class="btn btn-ghost" id="signupBackStep2Btn" data-signup-back="1">
+                Back
+              </button>
+              <button type="button" class="btn btn-primary" id="signupNextStep2Btn" data-signup-next="3">
+                Continue
+              </button>
+            </div>
+          </div>
+
+          <!-- SCREEN 3: PASSWORD -->
+          <div class="signup-step-screen hidden" id="signupStep3" data-signup-step="3" hidden>
+            <div class="signup-step-intro">
+              <h3 class="signup-step-title">Create a password</h3>
+              <p class="signup-step-sub">At least 8 characters.</p>
+            </div>
+
+            <div class="form-group">
+              <label for="userPasswordInput">Password</label>
+              <div class="password-input-wrap">
+                <input
+                  type="password"
+                  id="userPasswordInput"
+                  autocomplete="new-password"
+                  minlength="8"
+                  placeholder="At least 8 characters"
+                />
+                <button type="button" class="btn btn-ghost btn-sm pw-toggle-btn" data-toggle-pw="userPasswordInput">Show</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="userConfirmPasswordInput">Confirm password</label>
+              <div class="password-input-wrap">
+                <input
+                  type="password"
+                  id="userConfirmPasswordInput"
+                  autocomplete="new-password"
+                  minlength="8"
+                  placeholder="Type your password again"
+                />
+                <button type="button" class="btn btn-ghost btn-sm pw-toggle-btn" data-toggle-pw="userConfirmPasswordInput">Show</button>
+              </div>
+            </div>
+
+            <div class="signup-step-footer">
+              <button type="button" class="btn btn-ghost" id="signupBackStep3Btn" data-signup-back="2">
+                Back
+              </button>
+              <button type="button" class="btn btn-primary" id="signupNextStep3Btn" data-signup-next="4">
+                Continue
+              </button>
+            </div>
+          </div>
+
+          <!-- SCREEN 4: OPTIONAL LETTERBOXD IMPORT & FINISH -->
+          <div class="signup-step-screen hidden" id="signupStep4" data-signup-step="4" hidden>
+            <div class="signup-step-intro">
+              <h3 class="signup-step-title">Bring your films from Letterboxd</h3>
+              <p class="signup-step-sub">Connect your Letterboxd username or drop in your export files, or skip this step and start fresh.</p>
+            </div>
+
+            <div class="letterboxd-signup-box" id="signupLetterboxdBox">
+              <div class="form-group">
+                <label for="signupLetterboxdUsernameInput">Letterboxd username (optional)</label>
+                <input
+                  type="text"
+                  id="signupLetterboxdUsernameInput"
+                  placeholder="e.g. dave"
+                />
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="signupLetterboxdCsvInput">Or upload Letterboxd CSV export</label>
+                <input
+                  type="file"
+                  id="signupLetterboxdCsvInput"
+                  accept=".csv,text/csv"
+                  multiple
+                />
+              </div>
+            </div>
+
+            <div class="signup-step-footer signup-step-footer-final">
+              <button type="button" class="btn btn-ghost" id="signupBackStep4Btn" data-signup-back="3">
+                Back
+              </button>
+              <div class="signup-final-actions">
+                <button type="button" class="btn btn-secondary" id="signupSkipFinishBtn">
+                  Skip &amp; Finish
+                </button>
+                <button type="submit" class="btn btn-primary" id="saveUserSubmitBtn">
+                  Finish &amp; Create Account
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EXTRA PROFILE CUSTOMIZATION FIELDS (Shown in Edit Profile tab) -->
+        <div id="editOnlyProfileFields" class="hidden">
+          <div class="form-group">
+            <label for="userNameInput">Name</label>
+            <input
+              type="text"
+              id="userNameInput"
+              placeholder="Your name"
+            />
+          </div>
+
+          <div class="form-row-split">
+            <div class="form-group">
+              <label for="userLocationInput">Location</label>
+              <input
+                type="text"
+                id="userLocationInput"
+                placeholder="City or neighborhood"
+              />
+            </div>
+            <div class="form-group">
+              <label for="userAvatarColorInput">Accent color</label>
+              <select id="userAvatarColorInput">
+                <option value="#d49b4b">Warm Amber</option>
+                <option value="#10b981">Forest Green</option>
+                <option value="#6366f1">Indigo</option>
+                <option value="#ec4899">Rose</option>
+                <option value="#06b6d4">Teal</option>
+                <option value="#dc2626">Crimson</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="userBioInput">Bio</label>
+            <textarea
+              id="userBioInput"
+              rows="2"
+              placeholder="A few words about what you like to watch and read..."
+            ></textarea>
+          </div>
+        </div>
+
+        <footer class="modal-footer hidden" id="editProfileModalFooter">
+          <button type="button" class="btn btn-ghost" data-close-dialog="userDialog">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveProfileChangesBtn">Save changes</button>
+        </footer>
+      </form>
+
+      <!-- PANEL D: LETTERBOXD IMPORTER (#letterboxdImportPanel) -->
+      <div id="letterboxdImportPanel" class="auth-tab-panel hidden">
+        <div class="auth-credentials-box">
+          <h4 style="margin:0 0 0.25rem;font-family:var(--font-serif);font-size:1.05rem;">Sync by username</h4>
+          <p class="section-sub" style="margin-bottom:0.75rem;">
+            Enter your Letterboxd username to pull in your recent diary entries, ratings, and reviews.
+          </p>
+          <div style="display:flex;gap:0.55rem;align-items:center;flex-wrap:wrap;">
+            <input
+              type="text"
+              id="lbRssUsernameInput"
+              placeholder="username"
+              style="flex:1 1 200px;"
+            />
+            <button type="button" class="btn btn-primary" id="lbRssSyncBtn">
+              Sync films
+            </button>
+          </div>
+        </div>
+
+        <div class="auth-credentials-box" style="margin-bottom:0;">
+          <h4 style="margin:0 0 0.25rem;font-family:var(--font-serif);font-size:1.05rem;">Upload Letterboxd export</h4>
+          <p class="section-sub" style="margin-bottom:0.75rem;">
+            Have a Letterboxd export zip? Choose <code>diary.csv</code>, <code>reviews.csv</code>, <code>ratings.csv</code>, or <code>watchlist.csv</code> below.
+          </p>
+          <div class="form-group">
+            <label for="lbCsvFileInput">CSV files</label>
+            <input
+              type="file"
+              id="lbCsvFileInput"
+              accept=".csv,text/csv"
+              multiple
+            />
+          </div>
+          <div class="form-group">
+            <label for="lbCsvPasteTextarea">Or paste CSV rows</label>
+            <textarea
+              id="lbCsvPasteTextarea"
+              rows="3"
+              placeholder="Date,Name,Year,Letterboxd URI,Rating,Rewatch,Tags,Watched Date,Review"
+            ></textarea>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:0.55rem;">
+            <button type="button" class="btn btn-ghost" data-close-dialog="userDialog">Cancel</button>
+            <button type="button" class="btn btn-primary" id="lbCsvImportBtn">
+              Import CSV
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FORM B: SIGN IN (#authLoginForm) -->
+      <form id="authLoginForm" method="dialog" class="auth-tab-panel hidden">
+        <div class="form-group">
+          <label for="loginIdentifierInput">Email or username</label>
+          <input
+            type="text"
+            id="loginIdentifierInput"
+            autocomplete="username"
+            placeholder="you@example.com or username"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="loginPasswordInput">Password</label>
+          <div class="password-input-wrap">
+            <input
+              type="password"
+              id="loginPasswordInput"
+              autocomplete="current-password"
+              placeholder="Your password"
+              required
+            />
+            <button type="button" class="btn btn-ghost btn-sm pw-toggle-btn" data-toggle-pw="loginPasswordInput">Show</button>
+          </div>
+        </div>
+
+        <footer class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-close-dialog="userDialog">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="loginSubmitBtn">Sign in</button>
+        </footer>
+      </form>
+
+      <!-- SECTION C: ACCOUNT SETTINGS (Shown in Edit Profile tab) -->
+      <div id="accountSecuritySection" class="auth-security-panel hidden">
+        <div class="security-panel-header">
+          <div>
+            <h4>Account settings</h4>
+            <p class="section-sub" id="securityCurrentEmail">Signed in</p>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="authLogoutBtn" data-auth-logout="true">
+            Sign out
+          </button>
+        </div>
+
+        <form id="authCredentialsForm" class="auth-credentials-subform">
+          <div class="form-row-split">
+            <div class="form-group">
+              <label for="credCurrentPasswordInput">Current password</label>
+              <div class="password-input-wrap">
+                <input
+                  type="password"
+                  id="credCurrentPasswordInput"
+                  autocomplete="current-password"
+                  placeholder="Current password"
+                  required
+                />
+                <button type="button" class="btn btn-ghost btn-sm pw-toggle-btn" data-toggle-pw="credCurrentPasswordInput">Show</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="credNewEmailInput">New email</label>
+              <input
+                type="email"
+                id="credNewEmailInput"
+                autocomplete="email"
+                placeholder="you@example.com"
+              />
+            </div>
+          </div>
+
+          <div class="form-row-split">
+            <div class="form-group">
+              <label for="credNewPasswordInput">New password</label>
+              <div class="password-input-wrap">
+                <input
+                  type="password"
+                  id="credNewPasswordInput"
+                  autocomplete="new-password"
+                  minlength="8"
+                  placeholder="Optional"
+                />
+                <button type="button" class="btn btn-ghost btn-sm pw-toggle-btn" data-toggle-pw="credNewPasswordInput">Show</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="credConfirmPasswordInput">Confirm new password</label>
+              <div class="password-input-wrap">
+                <input
+                  type="password"
+                  id="credConfirmPasswordInput"
+                  autocomplete="new-password"
+                  minlength="8"
+                  placeholder="Repeat new password"
+                />
+                <button type="button" class="btn btn-ghost btn-sm pw-toggle-btn" data-toggle-pw="credConfirmPasswordInput">Show</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="security-subform-actions">
+            <button type="submit" class="btn btn-secondary btn-sm" id="updateCredentialsSubmitBtn">
+              Update email or password
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ==================== MODAL 6: ADD CUSTOM MEDIA TITLE DIALOG ==================== -->
+  <dialog id="customMediaDialog" closedby="any" aria-labelledby="customMediaDialogTitle" class="modal-dialog modal-dialog-compact">
+    <form id="customMediaForm" method="dialog" class="modal-form">
+      <header class="modal-header">
+        <div>
+          <p class="eyebrow">CATALOG</p>
+          <h2 id="customMediaDialogTitle">Add a custom title</h2>
+        </div>
+        <button type="button" class="btn-icon-close" data-close-dialog="customMediaDialog" aria-label="Close dialog">&times;</button>
+      </header>
+
+      <div class="form-group">
+        <label for="customMediaTitleInput">Title</label>
+        <input
+          type="text"
+          id="customMediaTitleInput"
+          placeholder="e.g., Columbus or Stoner"
+          required
+        />
+      </div>
+
+      <div class="form-row-split">
+        <div class="form-group">
+          <label for="customMediaTypeSelect">Medium</label>
+          <select id="customMediaTypeSelect">
+            <option value="movie">Movie</option>
+            <option value="tv">TV Show</option>
+            <option value="book">Book</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="customMediaYearInput">Year</label>
+          <input
+            type="number"
+            id="customMediaYearInput"
+            min="1880"
+            max="2035"
+            value="2024"
+          />
+        </div>
+      </div>
+
+      <div class="form-row-split">
+        <div class="form-group">
+          <label for="customMediaCreatorInput" id="customMediaCreatorLabel">Director / Creator / Author</label>
+          <input
+            type="text"
+            id="customMediaCreatorInput"
+            placeholder="e.g., Kogonada"
+          />
+        </div>
+        <div class="form-group">
+          <label for="customMediaGenreInput">Genres</label>
+          <input
+            type="text"
+            id="customMediaGenreInput"
+            placeholder="Drama, Indie"
+          />
+        </div>
+      </div>
+
+      <div class="form-row-split">
+        <div class="form-group">
+          <label for="customMediaLengthInput" id="customMediaLengthLabel">Runtime (mins) / Seasons / Pages</label>
+          <input
+            type="number"
+            id="customMediaLengthInput"
+            min="1"
+            max="5000"
+            placeholder="120"
+          />
+        </div>
+        <div class="form-group">
+          <label for="customMediaPosterInput">Poster URL (optional)</label>
+          <input
+            type="text"
+            id="customMediaPosterInput"
+            placeholder="Auto-generates cover if blank"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="customMediaSynopsisInput">Notes or synopsis</label>
+        <textarea
+          id="customMediaSynopsisInput"
+          rows="2"
+          placeholder="A short description..."
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="toggle-chip" for="customMediaLogImmediatelyInput">
+          <input type="checkbox" id="customMediaLogImmediatelyInput" class="visually-hidden" />
+          <span>Open Log &amp; Review right after adding</span>
+        </label>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-close-dialog="customMediaDialog">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="saveCustomMediaBtn">Add to Catalog</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Mobile Navigation">
+    <button
+      type="button"
+      class="mobile-nav-btn is-active active"
+      data-nav-view="explore"
+      data-mobile-nav="explore"
+      data-mobile-tab="explore"
+      id="mobile-nav-explore"
+    >
+      <span class="mobile-nav-icon" aria-hidden="true">✦</span>
+      <span class="mobile-nav-label">Explore</span>
+    </button>
+    <button
+      type="button"
+      class="mobile-nav-btn"
+      data-nav-view="feed"
+      data-mobile-nav="feed"
+      data-mobile-tab="feed"
+      id="mobile-nav-feed"
+    >
+      <span class="mobile-nav-icon" aria-hidden="true">◎</span>
+      <span class="mobile-nav-label">Feed</span>
+    </button>
+    <button
+      type="button"
+      class="mobile-nav-btn mobile-nav-log-btn"
+      id="mobileBottomLogBtn"
+      aria-label="Log a film, show, or book"
+    >
+      <span class="mobile-nav-log-pill">+ Log</span>
+    </button>
+    <button
+      type="button"
+      class="mobile-nav-btn"
+      data-nav-view="diary"
+      data-mobile-nav="diary"
+      data-mobile-tab="diary"
+      id="mobile-nav-diary"
+    >
+      <span class="mobile-nav-icon" aria-hidden="true">▤</span>
+      <span class="mobile-nav-label">Diary</span>
+    </button>
+    <button
+      type="button"
+      class="mobile-nav-btn"
+      data-nav-view="watchlist"
+      data-mobile-nav="watchlist"
+      data-mobile-tab="watchlist"
+      id="mobile-nav-watchlist"
+    >
+      <span class="mobile-nav-icon" aria-hidden="true">⚑</span>
+      <span class="mobile-nav-label">Watchlist</span>
+    </button>
+    <button
+      type="button"
+      class="mobile-nav-btn"
+      data-nav-view="lists"
+      data-mobile-nav="lists"
+      data-mobile-tab="lists"
+      id="mobile-nav-lists"
+    >
+      <span class="mobile-nav-icon" aria-hidden="true">☰</span>
+      <span class="mobile-nav-label">Lists</span>
+    </button>
+    <button
+      type="button"
+      class="mobile-nav-btn"
+      data-nav-view="profile"
+      data-mobile-nav="profile"
+      data-mobile-tab="profile"
+      id="mobile-nav-profile"
+    >
+      <span class="mobile-nav-icon" aria-hidden="true">◉</span>
+      <span class="mobile-nav-label">Profile</span>
+    </button>
+  </nav>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
