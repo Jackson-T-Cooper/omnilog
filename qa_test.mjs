@@ -1466,17 +1466,74 @@ async function runTests() {
     const healthHead = await fetch(`${BASE_URL}/api/health`, { method: 'HEAD' });
     assert.equal(healthHead.status, 200, 'HEAD /api/health returns 200 OK for UptimeRobot free monitor');
 
-    // 18b. Verify AES-256-GCM Cloud Backup encryption & full restore round-trip
-    await fetchJson('/api/auth/signup', {
+    // 18b. Verify Multi-Device / Multi-Browser Session Isolation (Phone A vs Phone B)
+    const phoneASignup = await fetchJson('/api/auth/signup', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Omnilog-Client': 'browser' },
       body: JSON.stringify({
-        name: 'Backup Tester',
-        handle: 'backuptester',
-        email: 'backup@omnilog.app',
+        name: 'Kaycee Phone A',
+        handle: 'kayceephonea',
+        email: 'kaycee@omnilog.app',
         password: 'BackupPassword2026!',
         confirmPassword: 'BackupPassword2026!'
       })
     });
+    assert.equal(phoneASignup.status, 201, 'Phone A signs up as Kaycee');
+    const phoneAToken = phoneASignup.data.sessionToken;
+    assert.ok(phoneAToken, 'Phone A receives its own session token');
+
+    // Phone B opens the site with X-Omnilog-Client: browser and NO token: must be signed out (currentUserId: null)
+    const phoneBState = await fetchJson('/api/state', {
+      headers: { 'X-Omnilog-Client': 'browser' }
+    });
+    assert.equal(
+      phoneBState.data.currentUserId,
+      null,
+      'Phone B without token is strictly signed out and NEVER inherits Kaycee session from Phone A'
+    );
+
+    // Phone A with its Bearer token remains signed in as Kaycee
+    const phoneAState = await fetchJson('/api/state', {
+      headers: {
+        'X-Omnilog-Client': 'browser',
+        Authorization: `Bearer ${phoneAToken}`
+      }
+    });
+    assert.equal(
+      phoneAState.data.currentUserId,
+      phoneASignup.data.user.id,
+      'Phone A with its Bearer token stays signed in as Kaycee'
+    );
+
+    // Phone B signs up as Friend: gets Friend account, while Phone A still sees Kaycee!
+    const phoneBSignup = await fetchJson('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Omnilog-Client': 'browser' },
+      body: JSON.stringify({
+        name: 'Friend Phone B',
+        handle: 'friendphoneb',
+        email: 'friend@omnilog.app',
+        password: 'BackupPassword2026!',
+        confirmPassword: 'BackupPassword2026!'
+      })
+    });
+    assert.equal(phoneBSignup.status, 201, 'Phone B signs up as Friend');
+    assert.equal(
+      phoneBSignup.data.state.currentUserId,
+      phoneBSignup.data.user.id,
+      'Phone B is signed into Friend account, not Kaycee'
+    );
+    const phoneAStateAfterB = await fetchJson('/api/state', {
+      headers: {
+        'X-Omnilog-Client': 'browser',
+        Authorization: `Bearer ${phoneAToken}`
+      }
+    });
+    assert.equal(
+      phoneAStateAfterB.data.currentUserId,
+      phoneASignup.data.user.id,
+      'Phone A remains signed in as Kaycee even after Phone B signs up'
+    );
 
     const syncRes = await fetchJson('/api/cloud-backup/sync', {
       method: 'POST',
@@ -1502,10 +1559,9 @@ async function runTests() {
     });
     assert.equal(restoreRes.status, 200, 'POST /api/cloud-backup/restore returns 200');
     assert.equal(restoreRes.data.restored, true);
-    assert.equal(
-      Object.keys(restoreRes.data.state.users || {}).length,
-      1,
-      'Encrypted cloud backup restored user account after container wipe'
+    assert.ok(
+      Object.keys(restoreRes.data.state.users || {}).length >= 2,
+      'Encrypted cloud backup restored user accounts after container wipe'
     );
 
     // Leave clean slate after Suite 18
