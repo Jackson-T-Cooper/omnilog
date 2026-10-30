@@ -1532,9 +1532,6 @@ function renderProfile() {
           <button type="button" class="btn ${isFollowing ? 'btn-secondary' : 'btn-primary'} btn-sm" data-toggle-follow="${escapeHtml(user.id)}">
             ${isFollowing ? '✓ Following' : '+ Follow'}
           </button>
-          <button type="button" class="btn btn-ghost btn-sm" data-switch-user="${escapeHtml(user.id)}">
-            Switch to ${escapeHtml(firstName)}’s Account
-          </button>
         </div>
       `;
     }
@@ -1624,11 +1621,6 @@ function renderProfile() {
     `;
   }
 
-  const activeEmailDisplay =
-    isOwnProfile && state.authUser && state.authUser.id === user.id && state.authUser.email
-      ? ` · ${escapeHtml(state.authUser.email)}`
-      : '';
-
   const profileActionButtonsHtml = isOwnProfile
     ? `
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.65rem;">
@@ -1641,9 +1633,6 @@ function renderProfile() {
         <button type="button" class="btn btn-ghost btn-sm" id="profileExportDiaryCsvBtn" data-export-diary-csv="${escapeHtml(user.id)}">
           Export CSV
         </button>
-        <button type="button" class="btn btn-ghost btn-sm" data-open-user-modal="create">
-          New account
-        </button>
         <button type="button" class="btn btn-ghost btn-sm" data-open-user-modal="login">
           Switch account
         </button>
@@ -1653,9 +1642,6 @@ function renderProfile() {
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.65rem;">
         <button type="button" class="btn ${isFollowing ? 'btn-secondary' : 'btn-primary'} btn-sm" data-toggle-follow="${escapeHtml(user.id)}">
           ${isFollowing ? '✓ Following' : '+ Follow'}
-        </button>
-        <button type="button" class="btn btn-secondary btn-sm" data-switch-user="${escapeHtml(user.id)}">
-          Switch to ${escapeHtml(firstName)}’s Profile
         </button>
         <button type="button" class="btn btn-ghost btn-sm" data-view-user="${escapeHtml(state.currentUserId)}">
           ← My Profile
@@ -1668,7 +1654,7 @@ function renderProfile() {
       <div class="profile-avatar-lg" style="background:${escapeHtml(user.avatarColor || '#10b981')}">${escapeHtml(user.avatar || 'JC')}</div>
       <div>
         <h1 id="profileHeading" style="margin-bottom:0.15rem;">${escapeHtml(user.name)}</h1>
-        <p class="section-sub">${escapeHtml(user.handle)} · ${escapeHtml(user.location || 'Austin, TX')}${activeEmailDisplay}</p>
+        <p class="section-sub">${escapeHtml(user.handle)}${user.location && user.location !== 'Family Circle' ? ` · ${escapeHtml(user.location)}` : ''}</p>
         <p style="margin:0.45rem 0 0;max-width:620px;color:var(--text-secondary);">${escapeHtml(user.bio)}</p>
         ${profileActionButtonsHtml}
       </div>
@@ -2779,42 +2765,22 @@ function viewUserProfile(userId) {
 
 async function handleSwitchUser(userId) {
   if (!userId || !state.users[userId]) return;
-  syncClientWatchlistToActiveUser();
-  uiState.isSignedOut = false;
-  state.currentUserId = userId;
-  uiState.viewingUserId = userId;
   const targetUser = state.users[userId];
-  state.watchlist = Array.isArray(targetUser.watchlist) ? [...targetUser.watchlist] : [];
-  saveLocalState();
-  renderAll();
-  showToast(`Switched active profile to ${targetUser.name} (${targetUser.handle})!`);
-
-  try {
-    const res = await apiFetch('/api/users/switch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId })
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.sessionToken || data.token) {
-        try {
-          localStorage.setItem('omnilog_session_token', data.sessionToken || data.token);
-        } catch {
-          // ignore
-        }
-      }
-      if (data.state && data.state.users) {
-        state = data.state;
-        upgradeUsersAndSocialGraph();
-        uiState.viewingUserId = state.currentUserId;
-        saveLocalState();
-        renderAll();
-      }
-    }
-  } catch {
-    // persisted locally
+  // Never switch into another user's account without password authentication
+  openUserModal('login');
+  const loginInput = document.getElementById('loginIdentifierInput');
+  if (loginInput) {
+    loginInput.value = targetUser.handle || '';
   }
+  const pwInput = document.getElementById('loginPasswordInput');
+  if (pwInput) {
+    pwInput.value = '';
+    pwInput.focus();
+  }
+  setAuthModalFeedback(
+    `Enter password for ${targetUser.name} (${targetUser.handle}) to sign in.`,
+    false
+  );
 }
 
 async function handleToggleFollow(targetUserId) {
@@ -3001,11 +2967,12 @@ async function refreshActiveAuthDetails() {
         state.authUser = data.authUser;
         const emailLabel = document.getElementById('securityCurrentEmail');
         const newEmailInput = document.getElementById('credNewEmailInput');
+        const masked = data.authUser.emailMasked || data.authUser.handle || '';
         if (emailLabel) {
-          emailLabel.textContent = `Signed in as ${data.authUser.email} (${data.authUser.handle})`;
+          emailLabel.textContent = `Signed in as ${data.authUser.handle} (${masked})`;
         }
-        if (newEmailInput && !newEmailInput.value) {
-          newEmailInput.value = data.authUser.email || '';
+        if (newEmailInput) {
+          newEmailInput.value = '';
         }
       }
     }
@@ -3149,15 +3116,15 @@ function switchAuthModalTab(tab = 'signup', userId = state.currentUserId) {
       }
     });
     const emailLabel = document.getElementById('securityCurrentEmail');
-    const fallbackEmail =
-      state.authUser && state.authUser.id === targetUser.id
-        ? state.authUser.email
-        : `${targetUser.id.replace(/^user-/, '')}@omnilog.app`;
+    const maskedEmail =
+      state.authUser && state.authUser.id === targetUser.id && state.authUser.emailMasked
+        ? state.authUser.emailMasked
+        : '***@omnilog.app';
     if (emailLabel) {
-      emailLabel.textContent = `Signed in as ${fallbackEmail} (${targetUser.handle})`;
+      emailLabel.textContent = `Signed in as ${targetUser.handle} (${maskedEmail})`;
     }
     const newEmailInput = document.getElementById('credNewEmailInput');
-    if (newEmailInput) newEmailInput.value = fallbackEmail;
+    if (newEmailInput) newEmailInput.value = '';
     refreshActiveAuthDetails();
   }
 }
@@ -3318,7 +3285,7 @@ async function handleSaveUserProfile(event) {
       showToast(
         importedTotal > 0
           ? `Signed up @${cleanHandleBase} & imported ${importedTotal} Letterboxd items!`
-          : `Signed up @${cleanHandleBase} (${email})!`
+          : `Signed up @${cleanHandleBase}!`
       );
       return;
     } catch {
@@ -3442,7 +3409,7 @@ async function handleAuthLogin(event) {
     }
     document.getElementById('loginPasswordInput').value = '';
     document.getElementById('userDialog')?.close();
-    showToast(`Signed in as ${data.user?.name || identifier} (${data.authUser?.email || ''})!`);
+    showToast(`Signed in as ${data.user?.name || identifier} (${data.user?.handle || ''})!`);
   } catch {
     setAuthModalFeedback('Unable to reach authentication server.', true);
   }
@@ -3499,7 +3466,7 @@ async function handleUpdateCredentials(event) {
     document.getElementById('credNewPasswordInput').value = '';
     document.getElementById('credConfirmPasswordInput').value = '';
     setAuthModalFeedback(
-      `Account settings updated for ${data.authUser?.email || 'your account'}.`,
+      `Account settings updated for ${data.authUser?.emailMasked || data.authUser?.handle || 'your account'}.`,
       false
     );
     showToast('Updated your email and password.');
@@ -4326,9 +4293,24 @@ if (typeof document !== 'undefined') {
     renderAll();
     syncWithServer();
     if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {
-        // SW registration optional in local dev
-      });
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) => {
+          for (const reg of registrations) {
+            reg.unregister().catch(() => {});
+          }
+        })
+        .catch(() => {});
+    }
+    if (typeof window !== 'undefined' && 'caches' in window) {
+      window.caches
+        .keys()
+        .then((keys) => {
+          for (const key of keys) {
+            window.caches.delete(key).catch(() => {});
+          }
+        })
+        .catch(() => {});
     }
   });
 }

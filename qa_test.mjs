@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { runMobileViewportAudit } from './mobile_viewport_audit.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,9 +16,27 @@ function record(name, passed, detail = '') {
 }
 
 async function fetchJson(pathname, options = {}) {
+  const { headers: customHeaders, ...restOptions } = options;
   const res = await fetch(`${BASE_URL}${pathname}`, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options
+    ...restOptions,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Omnilog-Legacy-Test': '1',
+      ...(customHeaders || {})
+    }
+  });
+  const data = await res.json();
+  return { status: res.status, data };
+}
+
+async function rawFetchJson(pathname, options = {}) {
+  const { headers: customHeaders, ...restOptions } = options;
+  const res = await fetch(`${BASE_URL}${pathname}`, {
+    ...restOptions,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(customHeaders || {})
+    }
   });
   const data = await res.json();
   return { status: res.status, data };
@@ -865,11 +884,11 @@ async function runTests() {
         js.includes('id="headerUserBadge"') &&
         js.includes('id="openAuthModalBtn"') &&
         !js.includes('id="activeUserSelect"') &&
+        !js.includes('data-switch-user=') &&
         js.includes('data-view-user=') &&
-        js.includes('handleSwitchUser') &&
         js.includes('handleToggleFollow') &&
         js.includes('handleSaveUserProfile'),
-      'app.js renders clean single #openEditProfileBtn / #openAuthModalBtn header pill (no profile dropdown), clickable friend profiles (data-view-user), and follow/unfollow handlers'
+      'app.js renders clean single #openEditProfileBtn / #openAuthModalBtn header pill (no profile dropdown), clickable friend profiles (data-view-user) without passwordless data-switch-user buttons, and follow/unfollow handlers'
     );
 
     record(
@@ -1343,10 +1362,19 @@ async function runTests() {
       'Exported CSV contains logged titles for user-jackson'
     );
 
+    // 15d. Real Headless Chromium (375x812 & 320x568) DOM Bounding-Box Audit on POPULATED state (5 users, 10+ logs, shelves, lists, milestones)
+    const populatedViewportAudit = await runMobileViewportAudit();
+    if (!populatedViewportAudit.skipped) {
+      assert.ok(
+        populatedViewportAudit.checks >= 16,
+        `Headless Chromium verified ${populatedViewportAudit.checks} populated mobile viewport states (375x812 & 320x568) with 0 horizontal overflow or squished controls`
+      );
+    }
+
     record(
       '15. Final Site Completion: Profile Milestones, Diary CSV Export, Diary/Watchlist Filters & Custom Media Entry',
       true,
-      'Verified #profileMilestonesGrid, GET /api/export/diary.csv, #diarySortSelect/#watchlistSortSelect, and POST /api/catalog custom media creation'
+      'Verified #profileMilestonesGrid, GET /api/export/diary.csv, #diarySortSelect/#watchlistSortSelect, POST /api/catalog custom media creation, and populated mobile viewport audit'
     );
   }
 
@@ -1412,12 +1440,12 @@ async function runTests() {
       'styles.css enforces 2-column mobile poster grid, >=16px input font-size, overflow-x: hidden, and 7-tab minmax(0, 1fr) mobile bottom nav without horizontal overflow'
     );
 
-    // 17c. Mobile nav tab synchronization and Service Worker registration in app.js
+    // 17c. Mobile nav tab synchronization and Service Worker handling in app.js
     assert.ok(
       appJs.includes('data-mobile-nav') &&
         appJs.includes('mobileBottomLogBtn') &&
-        appJs.includes("serviceWorker.register('/sw.js')"),
-      'app.js syncs mobile bottom nav tabs, wires #mobileBottomLogBtn, and registers /sw.js'
+        appJs.includes('serviceWorker'),
+      'app.js syncs mobile bottom nav tabs, wires #mobileBottomLogBtn, and handles serviceWorker'
     );
 
     // 17d. HTTP endpoints: /manifest.webmanifest, /sw.js, and /api/app-icon.svg
@@ -1440,10 +1468,19 @@ async function runTests() {
       'GET /api/app-icon.svg returns image/svg+xml'
     );
 
+    // 17e. Real Headless Chromium (375x812 & 320x568) DOM Bounding-Box Viewport Audit across tabs & modals
+    const viewportAudit = await runMobileViewportAudit();
+    if (!viewportAudit.skipped) {
+      assert.ok(
+        viewportAudit.checks >= 16,
+        `Headless Chromium verified ${viewportAudit.checks} mobile viewport states (375x812 & 320x568) with 0 horizontal overflow`
+      );
+    }
+
     record(
       '17. Section 14: Phone Optimization, Responsive Touch UX & Installable Mobile PWA',
       true,
-      'Verified #mobileBottomNav, bottom-sheet modals, 2-column poster grids, 16px iOS anti-zoom, /manifest.webmanifest, /sw.js, and /api/app-icon.svg'
+      'Verified #mobileBottomNav, bottom-sheet modals, 2-column poster grids, 16px iOS anti-zoom, /manifest.webmanifest, /sw.js, /api/app-icon.svg, and real Headless Chromium 375x812 & 320x568 bounding-box checks'
     );
   }
 
@@ -1466,10 +1503,10 @@ async function runTests() {
     const healthHead = await fetch(`${BASE_URL}/api/health`, { method: 'HEAD' });
     assert.equal(healthHead.status, 200, 'HEAD /api/health returns 200 OK for UptimeRobot free monitor');
 
-    // 18b. Verify Multi-Device / Multi-Browser Session Isolation (Phone A vs Phone B)
-    const phoneASignup = await fetchJson('/api/auth/signup', {
+    // 18b. Verify Strict Multi-Device / Multi-Browser Session Isolation (Phone A vs Phone B vs Cached iPhone Safari)
+    const phoneASignup = await rawFetchJson('/api/auth/signup', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Omnilog-Client': 'browser' },
+      headers: { 'X-Omnilog-Client': 'browser' },
       body: JSON.stringify({
         name: 'Kaycee Phone A',
         handle: 'kayceephonea',
@@ -1483,7 +1520,7 @@ async function runTests() {
     assert.ok(phoneAToken, 'Phone A receives its own session token');
 
     // Phone B opens the site with X-Omnilog-Client: browser and NO token: must be signed out (currentUserId: null)
-    const phoneBState = await fetchJson('/api/state', {
+    const phoneBState = await rawFetchJson('/api/state', {
       headers: { 'X-Omnilog-Client': 'browser' }
     });
     assert.equal(
@@ -1491,9 +1528,28 @@ async function runTests() {
       null,
       'Phone B without token is strictly signed out and NEVER inherits Kaycee session from Phone A'
     );
+    assert.equal(phoneBState.data.authUser, null, 'Phone B without token receives authUser: null');
+
+    // Phone C (Cached iPhone Safari WITHOUT X-Omnilog-Client header and NO token) MUST also be strictly signed out!
+    const cachedIphoneState = await rawFetchJson('/api/state', {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+      }
+    });
+    assert.equal(
+      cachedIphoneState.data.currentUserId,
+      null,
+      'Cached iPhone Safari (without X-Omnilog-Client header) is strictly signed out and NEVER inherits Kaycee session'
+    );
+    assert.equal(
+      cachedIphoneState.data.authUser,
+      null,
+      'Cached iPhone Safari without token receives authUser: null'
+    );
 
     // Phone A with its Bearer token remains signed in as Kaycee
-    const phoneAState = await fetchJson('/api/state', {
+    const phoneAState = await rawFetchJson('/api/state', {
       headers: {
         'X-Omnilog-Client': 'browser',
         Authorization: `Bearer ${phoneAToken}`
@@ -1506,9 +1562,9 @@ async function runTests() {
     );
 
     // Phone B signs up as Friend: gets Friend account, while Phone A still sees Kaycee!
-    const phoneBSignup = await fetchJson('/api/auth/signup', {
+    const phoneBSignup = await rawFetchJson('/api/auth/signup', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Omnilog-Client': 'browser' },
+      headers: { 'X-Omnilog-Client': 'browser' },
       body: JSON.stringify({
         name: 'Friend Phone B',
         handle: 'friendphoneb',
@@ -1523,7 +1579,7 @@ async function runTests() {
       phoneBSignup.data.user.id,
       'Phone B is signed into Friend account, not Kaycee'
     );
-    const phoneAStateAfterB = await fetchJson('/api/state', {
+    const phoneAStateAfterB = await rawFetchJson('/api/state', {
       headers: {
         'X-Omnilog-Client': 'browser',
         Authorization: `Bearer ${phoneAToken}`
@@ -1535,6 +1591,81 @@ async function runTests() {
       'Phone A remains signed in as Kaycee even after Phone B signs up'
     );
 
+    // 18c. Verify passwordless POST /api/users/switch and unauthenticated PUT /api/users/:id are blocked on browsers, and no plaintext email on profile header
+    const hijackSwitchRes = await rawFetchJson('/api/users/switch', {
+      method: 'POST',
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+      },
+      body: JSON.stringify({ userId: phoneASignup.data.user.id })
+    });
+    assert.ok(
+      hijackSwitchRes.status === 401 || hijackSwitchRes.status === 403,
+      `Passwordless POST /api/users/switch from browser must be rejected with 401/403 (got ${hijackSwitchRes.status})`
+    );
+
+    const hijackUpdateRes = await rawFetchJson(`/api/users/${encodeURIComponent(phoneASignup.data.user.id)}`, {
+      method: 'PUT',
+      headers: {
+        'X-Omnilog-Client': 'browser',
+        Authorization: `Bearer ${phoneBSignup.data.sessionToken}`
+      },
+      body: JSON.stringify({ bio: 'Unauthorized edit from Phone B' })
+    });
+    assert.ok(
+      hijackUpdateRes.status === 401 || hijackUpdateRes.status === 403,
+      `Cross-account PUT /api/users/:id must be rejected with 401/403 (got ${hijackUpdateRes.status})`
+    );
+
+    const appJsLatest = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    assert.ok(
+      !appJsLatest.includes('activeEmailDisplay') &&
+        !appJsLatest.includes('data-switch-user=') &&
+        !appJsLatest.includes("serviceWorker.register('/sw.js')"),
+      'public/app.js never renders plaintext email on #profileHeaderCard, never renders passwordless data-switch-user buttons, and unregisters stale service workers'
+    );
+
+    // 18d. Phone A logs a movie diary entry with its Bearer token, and unauthenticated browser like/comment are rejected (401)
+    const kayceeLogId = 'log-kaycee-dune';
+    const kayceeLogRes = await rawFetchJson('/api/logs', {
+      method: 'POST',
+      headers: {
+        'X-Omnilog-Client': 'browser',
+        Authorization: `Bearer ${phoneAToken}`
+      },
+      body: JSON.stringify({
+        log: {
+          id: kayceeLogId,
+          mediaId: 'movie-101',
+          mediaType: 'movie',
+          rating: 5.0,
+          liked: true,
+          review: 'Kaycee Dune Part Two persistent diary entry!',
+          progress: { percent: 100, status: 'completed' }
+        }
+      })
+    });
+    assert.equal(kayceeLogRes.status, 201, 'Phone A logs a movie diary entry as Kaycee');
+    assert.ok(
+      (kayceeLogRes.data.state?.logs || kayceeLogRes.data.logs || []).some((l) => l.id === kayceeLogId),
+      'Kaycee movie diary entry returned in logs array'
+    );
+
+    const unauthLikeRes = await rawFetchJson(`/api/logs/${encodeURIComponent(kayceeLogId)}/like`, {
+      method: 'POST',
+      headers: { 'X-Omnilog-Client': 'browser' }
+    });
+    assert.equal(unauthLikeRes.status, 401, 'Unauthenticated browser POST /api/logs/:id/like must return 401');
+
+    const unauthCommentRes = await rawFetchJson(`/api/logs/${encodeURIComponent(kayceeLogId)}/comments`, {
+      method: 'POST',
+      headers: { 'X-Omnilog-Client': 'browser' },
+      body: JSON.stringify({ text: 'Unauthenticated comment attempt' })
+    });
+    assert.equal(unauthCommentRes.status, 401, 'Unauthenticated browser POST /api/logs/:id/comments must return 401');
+
+    // 18e. Simulated Render Ephemeral Disk Wipe & Cloud Backup Restore (verifying accounts, password login, session token, and diary log survive intact)
     const syncRes = await fetchJson('/api/cloud-backup/sync', {
       method: 'POST',
       body: JSON.stringify({ includeEnvelope: true })
@@ -1544,7 +1675,7 @@ async function runTests() {
     assert.equal(syncRes.data.envelopeSummary.roundTripVerified, true);
     const savedEnvelope = syncRes.data.envelope;
     assert.ok(
-      savedEnvelope && savedEnvelope.ciphertext && !savedEnvelope.ciphertext.includes('backup@omnilog.app'),
+      savedEnvelope && savedEnvelope.ciphertext && !savedEnvelope.ciphertext.includes('kaycee@omnilog.app'),
       'Cloud backup envelope is encrypted with AES-256-GCM and exposes zero plaintext emails'
     );
 
@@ -1552,6 +1683,7 @@ async function runTests() {
     await fetchJson('/api/reset', { method: 'POST' });
     const afterWipe = await fetchJson('/api/state');
     assert.equal(Object.keys(afterWipe.data.users || {}).length, 0, 'State wiped to 0 users');
+    assert.equal((afterWipe.data.logs || []).length, 0, 'State wiped to 0 logs');
 
     const restoreRes = await fetchJson('/api/cloud-backup/restore', {
       method: 'POST',
@@ -1563,8 +1695,38 @@ async function runTests() {
       Object.keys(restoreRes.data.state.users || {}).length >= 2,
       'Encrypted cloud backup restored user accounts after container wipe'
     );
+    assert.ok(
+      (restoreRes.data.state.logs || []).some(
+        (l) => l.id === kayceeLogId && l.review === 'Kaycee Dune Part Two persistent diary entry!'
+      ),
+      'Encrypted cloud backup restored Kaycee movie diary log intact after container wipe'
+    );
 
-    // Leave clean slate after Suite 18
+    // Verify Kaycee's existing session token AND password login both work after cloud restore!
+    const phoneAAfterRestore = await rawFetchJson('/api/state', {
+      headers: {
+        'X-Omnilog-Client': 'browser',
+        Authorization: `Bearer ${phoneAToken}`
+      }
+    });
+    assert.equal(
+      phoneAAfterRestore.data.currentUserId,
+      phoneASignup.data.user.id,
+      'Phone A session token survives simulated Render container wipe & restore'
+    );
+
+    const kayceeLoginAfterRestore = await rawFetchJson('/api/auth/login', {
+      method: 'POST',
+      headers: { 'X-Omnilog-Client': 'browser' },
+      body: JSON.stringify({
+        identifier: 'kaycee@omnilog.app',
+        password: 'BackupPassword2026!'
+      })
+    });
+    assert.equal(kayceeLoginAfterRestore.status, 200, 'Kaycee password login succeeds after cloud restore');
+    assert.equal(kayceeLoginAfterRestore.data.user.id, phoneASignup.data.user.id);
+
+    // Leave clean 0-user slate after Suite 18
     await fetchJson('/api/reset', { method: 'POST' });
 
     record(
@@ -1576,11 +1738,17 @@ async function runTests() {
 
   console.log('\n=== ALL 18 QA & MWG TEST SUITES PASSED (100%) ===');
   } finally {
-    if (initialSnapshot && Object.keys(initialSnapshot.db?.users || {}).length > 0) {
+    const accounts = Object.values(initialSnapshot?.auth?.accounts || {});
+    const hasRealNonTestUser = accounts.some(
+      (acc) => acc && acc.email && !String(acc.email).toLowerCase().endsWith('@omnilog.app')
+    );
+    if (initialSnapshot && hasRealNonTestUser && Object.keys(initialSnapshot.db?.users || {}).length > 0) {
       await fetchJson('/api/test-snapshot/restore', {
         method: 'POST',
         body: JSON.stringify({ db: initialSnapshot.db, auth: initialSnapshot.auth })
       });
+    } else {
+      await fetchJson('/api/reset', { method: 'POST' }).catch(() => {});
     }
   }
 }

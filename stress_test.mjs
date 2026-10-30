@@ -9,9 +9,14 @@ const BASE_URL = 'http://localhost:4173';
 
 async function fetchJson(pathname, options = {}) {
   const start = performance.now();
+  const { headers: customHeaders, ...restOptions } = options;
   const res = await fetch(`${BASE_URL}${pathname}`, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options
+    ...restOptions,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Omnilog-Legacy-Test': '1',
+      ...(customHeaders || {})
+    }
   });
   const elapsedMs = performance.now() - start;
   const data = await res.json();
@@ -429,11 +434,17 @@ async function runStressTests() {
 
   console.log('\n=== ALL 11 STRESS & HARDENING TESTS PASSED (100%) ===');
   } finally {
-    if (initialSnapshot && Object.keys(initialSnapshot.db?.users || {}).length > 0) {
+    const accounts = Object.values(initialSnapshot?.auth?.accounts || {});
+    const hasRealNonTestUser = accounts.some(
+      (acc) => acc && acc.email && !String(acc.email).toLowerCase().endsWith('@omnilog.app')
+    );
+    if (initialSnapshot && hasRealNonTestUser && Object.keys(initialSnapshot.db?.users || {}).length > 0) {
       await fetchJson('/api/test-snapshot/restore', {
         method: 'POST',
         body: JSON.stringify({ db: initialSnapshot.db, auth: initialSnapshot.auth })
       });
+    } else {
+      await fetchJson('/api/reset', { method: 'POST' }).catch(() => {});
     }
   }
 }

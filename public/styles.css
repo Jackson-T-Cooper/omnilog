@@ -3023,6 +3023,16 @@ body {
     box-sizing: border-box !important;
   }
 
+  .histogram-bars {
+    gap: 0.2rem;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .hist-col {
+    min-width: 0;
+  }
+
   dialog[open] {
     position: fixed !important;
     inset: 0 !important;

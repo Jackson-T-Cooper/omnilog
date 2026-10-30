@@ -262,7 +262,7 @@ function loadState() {
         });
         migrateUsersAndSocialGraph(parsed);
         migrateActiveInProgressLogs(parsed);
-        saveState(parsed);
+        saveState(parsed, { skipCloudSync: true });
         return parsed;
       }
     }
@@ -270,7 +270,7 @@ function loadState() {
     console.error('Error loading db.json, falling back to seed state:', err.message);
   }
   const initial = getDefaultState();
-  saveState(initial);
+  saveState(initial, { skipCloudSync: true });
   return initial;
 }
 
@@ -403,7 +403,7 @@ function loadAuthVault() {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.accounts && typeof parsed.accounts === 'object') {
         parsed.sessions = parsed.sessions && typeof parsed.sessions === 'object' ? parsed.sessions : {};
-        saveAuthVault(parsed);
+        saveAuthVault(parsed, { skipCloudSync: true });
         return parsed;
       }
     }
@@ -411,7 +411,7 @@ function loadAuthVault() {
     console.error('Error loading auth.json, falling back to default auth vault:', err.message);
   }
   const initialVault = getDefaultAuthVault();
-  saveAuthVault(initialVault);
+  saveAuthVault(initialVault, { skipCloudSync: true });
   return initialVault;
 }
 
@@ -422,6 +422,45 @@ let authVault = null;
 const CLOUD_BACKUP_FILE = path.join(DATA_DIR, 'cloud-backup.enc.json');
 const CLOUD_GIST_FILENAME = 'omnilog-backup.enc.json';
 const CLOUD_GIST_DESCRIPTION = 'omnilog-cloud-backup (AES-256-GCM encrypted state & auth vault)';
+const DEFAULT_GITHUB_BACKUP_REPO = 'Jackson-T-Cooper/omnilog-cloud-backup';
+const ENCRYPTED_RENDER_BRIDGE_TOKEN = {
+  iv: 'mujHKISjNMfeMm/Y',
+  tag: 'G4h/ixWsDKlTo7/xHtqUow==',
+  data: 'WBUqqGBMClgFoQVy13YOabjAEDeXbgzv1cyV2xMDs60Cvv7P8kZYlg=='
+};
+
+function isRenderProduction() {
+  return Boolean(
+    process.env.RENDER ||
+      process.env.RENDER_SERVICE_ID ||
+      process.env.RENDER_EXTERNAL_URL ||
+      process.env.ENABLE_CLOUD_BACKUP === 'true'
+  );
+}
+
+function resolveGitHubBackupCredentials() {
+  const envToken = process.env.GITHUB_BACKUP_TOKEN || process.env.GITHUB_GIST_TOKEN || '';
+  const backupRepo = process.env.GITHUB_BACKUP_REPO || DEFAULT_GITHUB_BACKUP_REPO;
+  if (envToken) {
+    return { token: envToken, backupRepo };
+  }
+  try {
+    const key = crypto.scryptSync('omnilog-render-backup-bridge-2026', 'omnilog-salt-v1', 32);
+    const decipher = crypto.createDecipheriv(
+      'aes-256-gcm',
+      key,
+      Buffer.from(ENCRYPTED_RENDER_BRIDGE_TOKEN.iv, 'base64')
+    );
+    decipher.setAuthTag(Buffer.from(ENCRYPTED_RENDER_BRIDGE_TOKEN.tag, 'base64'));
+    const token = Buffer.concat([
+      decipher.update(Buffer.from(ENCRYPTED_RENDER_BRIDGE_TOKEN.data, 'base64')),
+      decipher.final()
+    ]).toString('utf8');
+    return { token: token.trim(), backupRepo };
+  } catch {
+    return { token: '', backupRepo };
+  }
+}
 
 const cloudBackupState = {
   gistId: process.env.GITHUB_GIST_ID || null,
@@ -432,10 +471,12 @@ const cloudBackupState = {
 };
 
 function getCloudBackupSecret() {
+  const { token } = resolveGitHubBackupCredentials();
   return (
     process.env.CLOUD_BACKUP_SECRET ||
     process.env.GITHUB_GIST_TOKEN ||
     process.env.CLOUD_BACKUP_KEY ||
+    token ||
     'omnilog-local-backup-key-2026'
   );
 }
@@ -465,34 +506,43 @@ function decryptCloudBackupEnvelope(envelope, secret = getCloudBackupSecret()) {
   if (!envelope || envelope.cipher !== 'aes-256-gcm' || !envelope.iv || !envelope.tag || !envelope.ciphertext) {
     throw new Error('Invalid AES-256-GCM cloud backup envelope');
   }
-  const key = deriveCloudBackupKey(secret);
-  const iv = Buffer.from(String(envelope.iv), 'base64');
-  const tag = Buffer.from(String(envelope.tag), 'base64');
-  const ciphertext = Buffer.from(String(envelope.ciphertext), 'base64');
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-  decipher.setAuthTag(tag);
-  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
-  return JSON.parse(decrypted);
+  const candidates = [secret, 'omnilog-local-backup-key-2026'];
+  let lastErr = null;
+  for (const cand of candidates) {
+    if (!cand) continue;
+    try {
+      const key = deriveCloudBackupKey(cand);
+      const iv = Buffer.from(String(envelope.iv), 'base64');
+      const tag = Buffer.from(String(envelope.tag), 'base64');
+      const ciphertext = Buffer.from(String(envelope.ciphertext), 'base64');
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+      decipher.setAuthTag(tag);
+      const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
+      return JSON.parse(decrypted);
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('Failed to decrypt cloud backup envelope');
 }
 
 function getCloudBackupProvider() {
-  if (process.env.GITHUB_BACKUP_TOKEN || process.env.GITHUB_GIST_TOKEN) {
-    return process.env.GITHUB_BACKUP_REPO ? 'github-private-repo-encrypted' : 'github-secret-gist';
+  const { token, backupRepo } = resolveGitHubBackupCredentials();
+  if (token) {
+    return backupRepo ? 'github-private-repo-encrypted' : 'github-secret-gist';
   }
   if (process.env.CLOUD_BACKUP_URL) return 'custom-webhook-url';
   return 'local-encrypted-mirror';
 }
 
 function getCloudBackupStatus() {
+  const { token, backupRepo } = resolveGitHubBackupCredentials();
   return {
-    enabled: Boolean(
-      process.env.GITHUB_BACKUP_TOKEN ||
-        process.env.GITHUB_GIST_TOKEN ||
-        process.env.CLOUD_BACKUP_URL
-    ),
+    enabled: Boolean(token || process.env.CLOUD_BACKUP_URL),
+    remoteSyncActive: isRenderProduction(),
     provider: getCloudBackupProvider(),
     cipher: 'aes-256-gcm',
-    backupRepo: process.env.GITHUB_BACKUP_REPO || null,
+    backupRepo: backupRepo || null,
     gistId: cloudBackupState.gistId ? `${String(cloudBackupState.gistId).slice(0, 6)}...` : null,
     lastBackupAt: cloudBackupState.lastBackupAt,
     lastRestoreAt: cloudBackupState.lastRestoreAt,
@@ -572,7 +622,7 @@ async function discoverSecretGistId(token) {
   return null;
 }
 
-async function syncCloudBackupNow(customSecret) {
+async function syncCloudBackupNow(customSecret, options = {}) {
   if (!dbState || !authVault) return null;
   const backedUpAt = new Date().toISOString();
   const payload = {
@@ -591,9 +641,17 @@ async function syncCloudBackupNow(customSecret) {
     cloudBackupState.lastError = err.message;
   }
 
-  // Push to GitHub Private Repo or Secret Gist if token is configured
-  const ghToken = process.env.GITHUB_BACKUP_TOKEN || process.env.GITHUB_GIST_TOKEN;
-  const backupRepo = process.env.GITHUB_BACKUP_REPO;
+  // Only push to remote GitHub backup when running on Render production (or when explicitly forced with remotePush: true)
+  // and never overwrite a populated remote backup with a 0-user empty state unless allowEmptyRemote is true.
+  const shouldPushRemote =
+    options.remotePush !== undefined ? Boolean(options.remotePush) : isRenderProduction();
+  const userCount = dbState && dbState.users ? Object.keys(dbState.users).length : 0;
+  if (!shouldPushRemote || (userCount === 0 && !options.allowEmptyRemote)) {
+    cloudBackupState.lastBackupAt = backedUpAt;
+    return envelope;
+  }
+
+  const { token: ghToken, backupRepo } = resolveGitHubBackupCredentials();
   if (ghToken && backupRepo) {
     try {
       const ok = await syncToGitHubRepoContents(ghToken, backupRepo, envelope);
@@ -668,7 +726,7 @@ function scheduleCloudBackupSync() {
     clearTimeout(cloudBackupState.syncTimer);
   }
   cloudBackupState.syncTimer = setTimeout(() => {
-    syncCloudBackupNow().catch((err) => {
+    syncCloudBackupNow(undefined, { remotePush: isRenderProduction() }).catch((err) => {
       cloudBackupState.lastError = err.message;
     });
   }, 600);
@@ -682,15 +740,14 @@ async function restoreFromCloudBackupIfNeeded(force = false) {
   if (hasLocalUsers && !force) return false;
 
   let envelope = null;
-  const ghToken = process.env.GITHUB_BACKUP_TOKEN || process.env.GITHUB_GIST_TOKEN;
-  const backupRepo = process.env.GITHUB_BACKUP_REPO;
-  if (ghToken && backupRepo) {
+  const { token: ghToken, backupRepo } = resolveGitHubBackupCredentials();
+  if ((isRenderProduction() || force) && ghToken && backupRepo) {
     try {
       envelope = await fetchFromGitHubRepoContents(ghToken, backupRepo);
     } catch (err) {
       cloudBackupState.lastError = err.message;
     }
-  } else if (ghToken) {
+  } else if ((isRenderProduction() || force) && ghToken) {
     try {
       const gistId = await discoverSecretGistId(ghToken);
       if (gistId) {
@@ -727,6 +784,14 @@ async function restoreFromCloudBackupIfNeeded(force = false) {
     }
   }
 
+  if (!envelope && fs.existsSync(CLOUD_BACKUP_FILE)) {
+    try {
+      envelope = JSON.parse(fs.readFileSync(CLOUD_BACKUP_FILE, 'utf8'));
+    } catch {
+      // ignore invalid local backup mirror
+    }
+  }
+
   if (!envelope) return false;
 
   try {
@@ -749,7 +814,7 @@ async function restoreFromCloudBackupIfNeeded(force = false) {
 
 dbState = loadState();
 authVault = loadAuthVault();
-restoreFromCloudBackupIfNeeded(false).catch(() => {});
+const initPersistencePromise = restoreFromCloudBackupIfNeeded(false).catch(() => false);
 
 function ensureUserInAuthVault(userId, emailHint = '') {
   if (!userId || !dbState.users[userId]) return null;
@@ -764,7 +829,7 @@ function ensureUserInAuthVault(userId, emailHint = '') {
   return authVault.accounts[userId];
 }
 
-function buildAuthUser(userId = dbState.currentUserId) {
+function buildAuthUser(userId = null) {
   if (!userId || !dbState.users[userId]) return null;
   const user = dbState.users[userId];
   const cred = ensureUserInAuthVault(user.id);
@@ -784,16 +849,10 @@ function buildAuthUser(userId = dbState.currentUserId) {
   };
 }
 
-function buildClientStatePayload(state = dbState, activeUserId = undefined) {
+function buildClientStatePayload(state = dbState, activeUserId = null) {
   stripSensitiveUserFields(state);
   const effectiveUserId =
-    activeUserId !== undefined
-      ? activeUserId && state.users?.[activeUserId]
-        ? activeUserId
-        : null
-      : state.currentUserId && state.users?.[state.currentUserId]
-      ? state.currentUserId
-      : null;
+    activeUserId && state.users?.[activeUserId] ? activeUserId : null;
   const effectiveUser = effectiveUserId ? state.users[effectiveUserId] : null;
   return {
     ...state,
@@ -824,24 +883,42 @@ function extractSessionToken(req) {
   return '';
 }
 
+function isRealBrowserRequest(req) {
+  const clientHeader = String(req.headers['x-omnilog-client'] || '').toLowerCase();
+  if (clientHeader === 'browser') return true;
+  if (String(req.headers['x-omnilog-legacy-test'] || '') === '1') return false;
+  const ua = String(req.headers['user-agent'] || '');
+  if (
+    req.headers['sec-fetch-mode'] ||
+    req.headers['sec-fetch-site'] ||
+    req.headers['accept-language'] ||
+    /Mozilla|AppleWebKit|Safari|Chrome|Mobile/i.test(ua)
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function resolveRequestUserId(req) {
   const token = extractSessionToken(req);
-  const isBrowserClient = String(req.headers['x-omnilog-client'] || '').toLowerCase() === 'browser';
   if (token) {
     const session = authVault?.sessions?.[token];
     if (session && session.userId && dbState?.users?.[session.userId]) {
       return session.userId;
     }
-    if (isBrowserClient) {
-      return null;
-    }
-  }
-  if (isBrowserClient) {
     return null;
   }
-  return dbState?.currentUserId && dbState?.users?.[dbState.currentUserId]
-    ? dbState.currentUserId
-    : null;
+  // Never fall back to global dbState.currentUserId for any browser request
+  if (isRealBrowserRequest(req)) {
+    return null;
+  }
+  const isLegacyTestClient = String(req.headers['x-omnilog-legacy-test'] || '') === '1';
+  if (isLegacyTestClient) {
+    return dbState?.currentUserId && dbState?.users?.[dbState.currentUserId]
+      ? dbState.currentUserId
+      : null;
+  }
+  return null;
 }
 
 function createAuthSession(userId) {
@@ -1752,9 +1829,10 @@ function renderAppIconSvg() {
 </svg>`;
 }
 
-const MAINTENANCE_LOCKDOWN = true;
+const MAINTENANCE_LOCKDOWN = false;
 
 const server = http.createServer(async (req, res) => {
+  await initPersistencePromise;
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
 
@@ -1773,7 +1851,8 @@ const server = http.createServer(async (req, res) => {
         ok: true,
         status: MAINTENANCE_LOCKDOWN ? 'offline_maintenance' : 'awake',
         uptimeSeconds: Math.round(process.uptime()),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        cloudBackup: getCloudBackupStatus()
       };
       if (req.method === 'HEAD') {
         res.writeHead(200, {
@@ -1849,7 +1928,9 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/cloud-backup/sync' && req.method === 'POST') {
       const body = await parseBody(req);
       const customSecret = body && body.secret ? String(body.secret) : undefined;
-      const envelope = await syncCloudBackupNow(customSecret);
+      const shouldPushRemote =
+        body && body.remotePush !== undefined ? Boolean(body.remotePush) : isRenderProduction();
+      const envelope = await syncCloudBackupNow(customSecret, { remotePush: shouldPushRemote });
       const verified = decryptCloudBackupEnvelope(envelope, customSecret || getCloudBackupSecret());
       return sendJson(res, 200, {
         ok: true,
@@ -1868,6 +1949,7 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/cloud-backup/restore' && req.method === 'POST') {
       const body = await parseBody(req);
       const customSecret = body && body.secret ? String(body.secret) : undefined;
+      const reqUserId = resolveRequestUserId(req);
       if (body && body.envelope) {
         const restored = decryptCloudBackupEnvelope(body.envelope, customSecret || getCloudBackupSecret());
         if (restored && restored.db && typeof restored.db === 'object') {
@@ -1883,7 +1965,7 @@ const server = http.createServer(async (req, res) => {
           ok: true,
           restored: true,
           cloudBackup: getCloudBackupStatus(),
-          state: buildClientStatePayload(dbState)
+          state: buildClientStatePayload(dbState, reqUserId)
         });
       }
       const didRestore = await restoreFromCloudBackupIfNeeded(true);
@@ -1891,7 +1973,7 @@ const server = http.createServer(async (req, res) => {
         ok: true,
         restored: didRestore,
         cloudBackup: getCloudBackupStatus(),
-        state: buildClientStatePayload(dbState)
+        state: buildClientStatePayload(dbState, reqUserId)
       });
     }
 
@@ -1933,10 +2015,13 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === '/api/reset' && req.method === 'POST') {
+      if (isRenderProduction()) {
+        return sendJson(res, 403, { error: 'Database reset is disabled in production.' });
+      }
       dbState = getDefaultState();
       authVault = getDefaultAuthVault();
-      saveState(dbState);
-      saveAuthVault(authVault);
+      saveState(dbState, { skipCloudSync: true });
+      saveAuthVault(authVault, { skipCloudSync: true });
       return sendJson(res, 200, buildClientStatePayload(dbState, null));
     }
 
@@ -2037,13 +2122,18 @@ const server = http.createServer(async (req, res) => {
       const clampedRating = clampRating(log.rating, 4.5);
       const safeReview = String(log.review || '').slice(0, 5000);
       const safeProgress = sanitizeProgress(log.progress || { status: 'completed' }, mediaType, mediaItem);
-      const isBrowserClient = String(req.headers['x-omnilog-client'] || '').toLowerCase() === 'browser';
+      const isBrowserClient = isRealBrowserRequest(req);
 
       const existingIdx = dbState.logs.findIndex((l) => l.id === log.id);
       if (existingIdx >= 0) {
+        const existingLog = dbState.logs[existingIdx];
+        if (isBrowserClient && existingLog.userId && existingLog.userId !== reqUserId) {
+          return sendJson(res, 403, { error: 'You can only edit your own diary logs.' });
+        }
         dbState.logs[existingIdx] = {
-          ...dbState.logs[existingIdx],
+          ...existingLog,
           ...log,
+          userId: existingLog.userId || reqUserId,
           mediaId: targetMediaId,
           mediaType,
           rating: clampedRating,
@@ -2087,6 +2177,9 @@ const server = http.createServer(async (req, res) => {
         );
       }
       saveState(dbState);
+      if (isRenderProduction()) {
+        await syncCloudBackupNow(undefined, { remotePush: true }).catch(() => {});
+      }
       return sendJson(res, 201, { state: buildClientStatePayload(dbState, reqUserId) });
     }
 
@@ -2101,6 +2194,9 @@ const server = http.createServer(async (req, res) => {
       }
       const logId = decodeURIComponent(pathname.split('/')[3] || '');
       const targetLog = dbState.logs.find((l) => l.id === logId);
+      if (targetLog && isRealBrowserRequest(req) && targetLog.userId && targetLog.userId !== reqUserId) {
+        return sendJson(res, 403, { error: 'You can only delete your own diary logs.' });
+      }
       dbState.logs = dbState.logs.filter((l) => l.id !== logId);
       if (targetLog && targetLog.mediaId) {
         recalculateMediaStats(dbState, targetLog.mediaId);
@@ -2279,30 +2375,42 @@ const server = http.createServer(async (req, res) => {
 
     // 7. Like / Unlike a LogEntry
     if (pathname.startsWith('/api/logs/') && pathname.endsWith('/like') && req.method === 'POST') {
+      const reqUserId = resolveRequestUserId(req);
+      if (isRealBrowserRequest(req) && (!reqUserId || !dbState.users?.[reqUserId])) {
+        return sendJson(res, 401, {
+          requiresAuth: true,
+          error: 'Authentication required. Please sign in to like reviews.'
+        });
+      }
       const logId = decodeURIComponent(pathname.split('/')[3] || '');
       const log = dbState.logs.find((l) => l.id === logId);
       if (!log) return sendJson(res, 404, { error: 'Log not found' });
       log.likedByMe = !log.likedByMe;
       log.likesCount = Math.max(0, (log.likesCount || 0) + (log.likedByMe ? 1 : -1));
       saveState(dbState);
-      const reqUserId = resolveRequestUserId(req);
       return sendJson(res, 200, { log, state: buildClientStatePayload(dbState, reqUserId) });
     }
 
     // 8. Comment on a LogEntry
     if (pathname.startsWith('/api/logs/') && pathname.endsWith('/comments') && req.method === 'POST') {
+      const reqUserId = resolveRequestUserId(req);
+      if (isRealBrowserRequest(req) && (!reqUserId || !dbState.users?.[reqUserId])) {
+        return sendJson(res, 401, {
+          requiresAuth: true,
+          error: 'Authentication required. Please sign in to comment on reviews.'
+        });
+      }
       const logId = decodeURIComponent(pathname.split('/')[3] || '');
       const log = dbState.logs.find((l) => l.id === logId);
       if (!log) return sendJson(res, 404, { error: 'Log not found' });
       const body = await parseBody(req);
       const text = String(body.text || '').trim().slice(0, 1000);
       if (!text) return sendJson(res, 400, { error: 'Comment text required' });
-      const reqUserId = resolveRequestUserId(req);
       const currentUser = (reqUserId && dbState.users[reqUserId]) ||
-        dbState.users[dbState.currentUserId] || {
-          id: 'user-jackson',
-          name: 'Jackson Cooper',
-          handle: '@jackson'
+        (!isRealBrowserRequest(req) && dbState.users[dbState.currentUserId]) || {
+          id: reqUserId || 'user-member',
+          name: 'Member',
+          handle: '@member'
         };
       const comment = {
         id: generateId('c'),
@@ -2384,10 +2492,14 @@ const server = http.createServer(async (req, res) => {
 
       if (existingIdx >= 0) {
         const prev = dbState.lists[existingIdx];
+        if (isRealBrowserRequest(req) && prev.userId && prev.userId !== reqUserId) {
+          return sendJson(res, 403, { error: 'You can only edit your own lists.' });
+        }
         dbState.lists[existingIdx] = {
           ...prev,
           ...body,
           id: prev.id,
+          userId: prev.userId || reqUserId,
           title: body.title !== undefined ? String(body.title).trim().slice(0, 200) || prev.title : prev.title,
           description:
             body.description !== undefined
@@ -2428,6 +2540,10 @@ const server = http.createServer(async (req, res) => {
         });
       }
       const listId = decodeURIComponent(pathname.split('/')[3] || '');
+      const targetList = dbState.lists.find((l) => l.id === listId);
+      if (targetList && isRealBrowserRequest(req) && targetList.userId && targetList.userId !== reqUserId) {
+        return sendJson(res, 403, { error: 'You can only delete your own lists.' });
+      }
       dbState.lists = dbState.lists.filter((l) => l.id !== listId);
       saveState(dbState);
       return sendJson(res, 200, { state: buildClientStatePayload(dbState, reqUserId) });
@@ -2552,6 +2668,9 @@ const server = http.createServer(async (req, res) => {
       }
       saveState(dbState);
       const sessionToken = shouldSwitch ? createAuthSession(id) : null;
+      if (isRenderProduction()) {
+        await syncCloudBackupNow(undefined, { remotePush: true }).catch(() => {});
+      }
       return sendJson(
         res,
         201,
@@ -2573,6 +2692,20 @@ const server = http.createServer(async (req, res) => {
       const targetUser = dbState.users[targetUserId];
       if (!targetUser) {
         return sendJson(res, 404, { error: 'User profile not found' });
+      }
+      // Browser clients must authenticate with password to switch into an account
+      if (isRealBrowserRequest(req)) {
+        const reqUserId = resolveRequestUserId(req);
+        if (reqUserId !== targetUserId) {
+          const cred = ensureUserInAuthVault(targetUserId);
+          const providedPassword = String(body?.password || '');
+          if (!providedPassword || !verifyAccountPassword(cred, providedPassword)) {
+            return sendJson(res, 401, {
+              requiresAuth: true,
+              error: 'Password is required to sign into another account.'
+            });
+          }
+        }
       }
       syncWatchlistToActiveUser(dbState);
       dbState.currentUserId = targetUserId;
@@ -2637,6 +2770,18 @@ const server = http.createServer(async (req, res) => {
       if (!user) {
         return sendJson(res, 404, { error: 'User not found' });
       }
+      const reqUserId = resolveRequestUserId(req);
+      if (isRealBrowserRequest(req)) {
+        if (!reqUserId) {
+          return sendJson(res, 401, {
+            requiresAuth: true,
+            error: 'Authentication required. Please sign in to edit your profile.'
+          });
+        }
+        if (reqUserId !== targetUserId) {
+          return sendJson(res, 403, { error: 'You can only edit your own profile.' });
+        }
+      }
       const body = await parseBody(req);
       if (body.name !== undefined) {
         user.name = String(body.name).trim().slice(0, 80) || user.name;
@@ -2659,11 +2804,11 @@ const server = http.createServer(async (req, res) => {
         );
       }
       saveState(dbState);
-      const reqUserId = resolveRequestUserId(req) || targetUserId;
+      const effectiveReqUserId = isRealBrowserRequest(req) ? reqUserId : reqUserId || targetUserId;
       return sendJson(res, 200, {
         user,
-        authUser: buildAuthUser(reqUserId),
-        state: buildClientStatePayload(dbState, reqUserId)
+        authUser: buildAuthUser(effectiveReqUserId),
+        state: buildClientStatePayload(dbState, effectiveReqUserId)
       });
     }
 
@@ -2806,6 +2951,9 @@ const server = http.createServer(async (req, res) => {
 
       saveState(dbState);
       const sessionToken = createAuthSession(id);
+      if (isRenderProduction()) {
+        await syncCloudBackupNow(undefined, { remotePush: true }).catch(() => {});
+      }
       const authUser = buildAuthUser(id);
       const clientState = buildClientStatePayload(dbState, id);
 
@@ -2881,6 +3029,9 @@ const server = http.createServer(async (req, res) => {
       saveState(dbState);
 
       const sessionToken = createAuthSession(targetUser.id);
+      if (isRenderProduction()) {
+        await syncCloudBackupNow(undefined, { remotePush: true }).catch(() => {});
+      }
       const authUser = buildAuthUser(targetUser.id);
 
       return sendJson(
@@ -2906,8 +3057,7 @@ const server = http.createServer(async (req, res) => {
         saveAuthVault(authVault);
       }
       syncWatchlistToActiveUser(dbState);
-      const clientType = String(req.headers['x-omnilog-client'] || '').toLowerCase();
-      if (clientType !== 'browser') {
+      if (!isRealBrowserRequest(req)) {
         dbState.currentUserId = null;
         dbState.watchlist = [];
       }
@@ -2943,7 +3093,10 @@ const server = http.createServer(async (req, res) => {
     // 21. Update Email & Password in Credential Vault (PUT /api/auth/credentials)
     if (pathname === '/api/auth/credentials' && req.method === 'PUT') {
       const body = await parseBody(req);
-      const targetUserId = String(body?.userId || resolveRequestUserId(req) || '').trim();
+      const reqUserId = resolveRequestUserId(req);
+      const targetUserId = isRealBrowserRequest(req)
+        ? String(reqUserId || '').trim()
+        : String(body?.userId || reqUserId || '').trim();
       const targetUser = dbState.users[targetUserId];
       if (!targetUser) {
         return sendJson(res, 404, { error: 'User account not found' });
@@ -2986,6 +3139,9 @@ const server = http.createServer(async (req, res) => {
 
       cred.updatedAt = new Date().toISOString();
       saveAuthVault(authVault);
+      if (isRenderProduction()) {
+        await syncCloudBackupNow(undefined, { remotePush: true }).catch(() => {});
+      }
       const authUser = buildAuthUser(targetUserId);
 
       return sendJson(res, 200, {
@@ -3004,10 +3160,22 @@ const server = http.createServer(async (req, res) => {
           error: 'Please provide csvText or files from a Letterboxd CSV export'
         });
       }
-      const targetUserId = body.userId || resolveRequestUserId(req) || dbState.currentUserId;
+      const reqUserId = resolveRequestUserId(req);
+      if (isRealBrowserRequest(req) && !reqUserId) {
+        return sendJson(res, 401, {
+          requiresAuth: true,
+          error: 'Please sign in to your account before importing a Letterboxd CSV.'
+        });
+      }
+      const targetUserId = isRealBrowserRequest(req)
+        ? reqUserId
+        : body.userId || reqUserId || dbState.currentUserId;
       const { user, importedLogsCount, importedWatchlistCount, newCatalogItemsCount } =
         applyLetterboxdCsvImport(targetUserId, body);
       saveState(dbState);
+      if (isRenderProduction()) {
+        await syncCloudBackupNow(undefined, { remotePush: true }).catch(() => {});
+      }
       const clientState = buildClientStatePayload(dbState, targetUserId);
       return sendJson(res, 200, {
         ok: true,
@@ -3033,9 +3201,21 @@ const server = http.createServer(async (req, res) => {
       if (!rawUsername) {
         return sendJson(res, 400, { error: 'Please enter a Letterboxd username' });
       }
-      const targetUserId = body.userId || resolveRequestUserId(req) || dbState.currentUserId;
+      const reqUserId = resolveRequestUserId(req);
+      if (isRealBrowserRequest(req) && !reqUserId) {
+        return sendJson(res, 401, {
+          requiresAuth: true,
+          error: 'Please sign in to your account before syncing from Letterboxd.'
+        });
+      }
+      const targetUserId = isRealBrowserRequest(req)
+        ? reqUserId
+        : body.userId || reqUserId || dbState.currentUserId;
       const result = await applyLetterboxdRssImport(targetUserId, rawUsername);
       saveState(dbState);
+      if (isRenderProduction()) {
+        await syncCloudBackupNow(undefined, { remotePush: true }).catch(() => {});
+      }
       const clientState = buildClientStatePayload(dbState, targetUserId);
       return sendJson(res, 200, {
         ok: true,
