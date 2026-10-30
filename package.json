@@ -4,8 +4,13 @@
   "description": "Letterboxd-style social platform for Movies, TV Shows, and Books",
   "type": "module",
   "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
+    "build": "echo 'Omnilog build ready'",
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "node qa_test.mjs"
   }
 }
