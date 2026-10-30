@@ -203,6 +203,27 @@ export async function runMobileViewportAudit() {
         report.push({ viewport: vp.name, state: stateLabel, docScrollWidth: metrics.docScrollWidth });
       };
 
+      // 0. Verify Section 15 Declutter & 4-Tab Streamlined Mobile UI in live computed styles
+      const declutterCheck = await evalInPage(`(() => {
+        const isHidden = (el) => !el || el.classList.contains('hidden') || window.getComputedStyle(el).display === 'none';
+        const quickLogHidden = isHidden(document.getElementById('openLogModalBtn'));
+        const bottomLogHidden = isHidden(document.getElementById('mobileBottomLogBtn'));
+        const heroHidden = isHidden(document.querySelector('.hero-banner'));
+        const visibleBottomTabs = Array.from(document.querySelectorAll('#mobileBottomNav [data-mobile-nav]')).filter(
+          (el) => !isHidden(el)
+        );
+        return {
+          quickLogHidden,
+          bottomLogHidden,
+          heroHidden,
+          visibleBottomTabCount: visibleBottomTabs.length
+        };
+      })()`);
+      assert.equal(declutterCheck.quickLogHidden, true, `[${vp.name}] #openLogModalBtn is hidden`);
+      assert.equal(declutterCheck.bottomLogHidden, true, `[${vp.name}] #mobileBottomLogBtn is hidden`);
+      assert.equal(declutterCheck.heroHidden, true, `[${vp.name}] .hero-banner is hidden`);
+      assert.equal(declutterCheck.visibleBottomTabCount, 4, `[${vp.name}] #mobileBottomNav shows 4 streamlined tabs`);
+
       // 1. Check all main tabs (explore, feed, diary, lists, watchlist, profile)
       for (const tab of ['explore', 'feed', 'diary', 'lists', 'watchlist', 'profile']) {
         await evalInPage(`(() => {

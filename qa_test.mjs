@@ -1737,7 +1737,51 @@ async function runTests() {
     );
   }
 
-  console.log('\n=== ALL 18 QA & MWG TEST SUITES PASSED (100%) ===');
+  // 19. Section 15: Minimalist Poster-First Declutter & Streamlined 4-Tab Navigation
+  {
+    const indexHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+    const stylesCss = fs.readFileSync(path.join(__dirname, 'public', 'styles.css'), 'utf8');
+    const appJs = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+
+    // 19a. Standalone + Log buttons (#openLogModalBtn and #mobileBottomLogBtn) and .hero-banner are hidden
+    assert.ok(
+      indexHtml.includes('id="openLogModalBtn"') &&
+        indexHtml.includes('id="mobileBottomLogBtn"') &&
+        indexHtml.includes('class="hero-banner hidden"'),
+      'index.html hides .hero-banner while preserving #openLogModalBtn and #mobileBottomLogBtn hooks as hidden'
+    );
+
+    // 19b. Streamlined 4-Tab Navigation (Explore, Feed, Diary, Profile) + Logged/Saved/Lists sub-pills
+    assert.ok(
+      stylesCss.includes('repeat(4, minmax(0, 1fr))'),
+      'styles.css configures #mobileBottomNav with 4 equal columns: repeat(4, minmax(0, 1fr))'
+    );
+    assert.ok(
+      indexHtml.includes('Logged') &&
+        indexHtml.includes('Saved') &&
+        indexHtml.includes('Lists') &&
+        indexHtml.includes('data-nav-view="watchlist"') &&
+        indexHtml.includes('data-nav-view="lists"'),
+      'index.html provides clean Logged | Saved | Lists sub-pills inside Diary/Watchlist/Lists views'
+    );
+
+    // 19c. Minimalist Poster-First Cards & Empty Shelf Hiding
+    assert.ok(
+      stylesCss.includes('.card-creator') &&
+        stylesCss.includes('.genre-row') &&
+        appJs.includes("myLog ? 'Logged ✓' : 'Log'") &&
+        appJs.includes("exploreSection.classList.toggle('hidden', filteredForExplore.length === 0)"),
+      'Poster cards hide verbose creator/genre lines, use compact Log + bookmark actions, and hide empty Currently Watching shelf when 0 items are tracked'
+    );
+
+    record(
+      '19. Section 15: Minimalist Poster-First Declutter & Streamlined 4-Tab Navigation',
+      true,
+      'Verified hidden standalone + Log buttons & .hero-banner, 4-tab navigation (Explore, Feed, Diary, Profile) with Logged/Saved/Lists sub-pills, minimalist poster cards, and hidden empty tracking shelves'
+    );
+  }
+
+  console.log('\n=== ALL 19 QA & MWG TEST SUITES PASSED (100%) ===');
   } finally {
     const accounts = Object.values(initialSnapshot?.auth?.accounts || {});
     const hasRealNonTestUser = accounts.some(
