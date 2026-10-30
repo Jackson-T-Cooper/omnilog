@@ -2424,81 +2424,111 @@ body {
     display: grid;
   }
 
-  /* Compact Hero Banner & 3-Column Quick Stats */
+  /* Compact Hero Banner & 2x2 Quick Stats */
   .hero-banner {
-    padding: 1.05rem 0.95rem;
-    margin-bottom: 1.1rem;
-    gap: 0.85rem;
+    padding: 0.95rem 0.9rem;
+    margin-bottom: 1rem;
+    gap: 0.75rem;
   }
 
   .hero-banner h1 {
-    font-size: 1.35rem;
+    font-size: 1.32rem;
     line-height: 1.22;
   }
 
   .hero-sub {
-    font-size: 0.86rem;
+    font-size: 0.85rem;
   }
 
   .hero-quick-stats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.45rem;
-    width: 100%;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.45rem !important;
+    width: 100% !important;
   }
 
-  .mini-stat {
-    min-width: 0;
-    padding: 0.55rem 0.3rem;
+  .mini-stat,
+  .stat-pill {
+    min-width: 0 !important;
+    padding: 0.48rem 0.45rem !important;
   }
 
   .mini-stat strong {
-    font-size: 1.15rem;
+    font-size: 1.12rem;
   }
 
   .mini-stat span {
-    font-size: 0.63rem;
+    font-size: 0.65rem;
   }
 
-  /* Explore Controls Bar & Search Box — Zero Horizontal Overflow */
+  /* Explore Controls Bar & Search Box — Compact & Zero Horizontal Overflow */
   .controls-bar {
-    padding: 0.8rem;
-    margin-bottom: 1.15rem;
-    gap: 0.65rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    gap: 0.55rem;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .controls-bar .medium-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 0.35rem !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .controls-bar .medium-tabs .pill-tab,
+  .controls-bar .medium-tabs .pill {
+    min-height: 38px !important;
+    padding: 0.3rem 0.2rem !important;
+    font-size: 0.76rem !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    text-align: center !important;
+    justify-content: center !important;
   }
 
   .search-and-selects {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 0.5rem;
+    gap: 0.45rem;
     width: 100%;
   }
 
   .search-box {
     grid-column: 1 / -1;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.45rem;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.4rem;
     min-width: 0 !important;
     max-width: 100% !important;
     width: 100%;
   }
 
-  .search-box input,
-  .search-box .btn {
+  .search-box input {
+    grid-column: 1 / -1;
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
+  }
+
+  .search-box .btn {
+    width: 100%;
+    min-width: 0;
+    min-height: 38px !important;
+    padding: 0.35rem 0.5rem !important;
+    font-size: 0.78rem !important;
+    box-sizing: border-box;
+    justify-content: center;
   }
 
   #genreFilterSelect,
   #sortFilterSelect {
     width: 100%;
     min-width: 0;
-    padding: 0.45rem 0.5rem;
+    min-height: 38px !important;
+    padding: 0.38rem 0.5rem;
   }
 
   #openCustomMediaBtn {
@@ -2507,36 +2537,38 @@ body {
     justify-content: center;
   }
 
-  /* Horizontal scroll-snap filter strips without scrollbar clutter */
+  /* Filter tabs & Diary filter bar — wrap cleanly without squishing onto 1 nowrap row */
   .medium-tabs,
-  .filter-tabs,
-  .diary-filter-bar,
-  .auth-modal-tabs {
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    flex-wrap: nowrap;
-    max-width: 100%;
-    width: 100%;
+  .filter-tabs {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.35rem !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow-x: visible !important;
   }
 
-  .medium-tabs::-webkit-scrollbar,
-  .filter-tabs::-webkit-scrollbar,
-  .diary-filter-bar::-webkit-scrollbar,
-  .auth-modal-tabs::-webkit-scrollbar {
-    display: none;
+  .diary-filter-bar {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: visible !important;
   }
 
   .medium-tabs .pill-tab,
   .filter-tabs .pill-tab,
+  .filter-pills .pill,
   .auth-modal-tabs .pill-tab {
-    scroll-snap-align: start;
     flex: 1 1 auto;
+    min-width: 0;
+    min-height: 38px !important;
     text-align: center;
     justify-content: center;
-    padding: 0.4rem 0.65rem;
-    font-size: 0.8rem;
+    padding: 0.35rem 0.55rem !important;
+    font-size: 0.78rem !important;
   }
 
   /* Minimum 44x44px touch targets & zero tap delay */
@@ -2568,7 +2600,7 @@ body {
   }
 }
 
-/* Phone Viewport Bottom-Sheet Modals, 2-Column Poster Grids & Stacked Sections (<= 640px) */
+/* Phone Viewport Centered Safe Modals (92dvh / 20px 20px 0 0 compat), 2-Column Poster Grids & Stacked Sections (<= 640px) */
 @media (max-width: 640px) {
   dialog.modal-dialog,
   dialog.modal-dialog-wide,
@@ -2578,25 +2610,26 @@ body {
   #detailDialog,
   #listDialog,
   #favoritePickerDialog,
-  #customMediaDialog {
-    margin: auto 0 0 0 !important;
-    inset: auto 0 0 0;
-    width: 100% !important;
-    max-width: 100vw !important;
-    max-height: 92dvh;
-    border-radius: 20px 20px 0 0 !important;
-    border-left: none;
-    border-right: none;
-    border-bottom: none;
-    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
-    overflow-x: hidden;
-    box-sizing: border-box;
-    animation: mobileSheetUp 0.22s cubic-bezier(0.2, 0.85, 0.3, 1);
+  #customMediaDialog,
+  dialog[open] {
+    position: fixed !important;
+    inset: 0 !important;
+    margin: auto !important;
+    width: calc(100vw - 20px) !important;
+    max-width: 420px !important;
+    max-height: calc(100dvh - 104px) !important;
+    border-radius: 16px !important;
+    border: 1.5px solid var(--accent-brass) !important;
+    padding: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    box-sizing: border-box !important;
+    animation: mobileSheetUp 0.2s cubic-bezier(0.2, 0.85, 0.3, 1);
   }
 
   .modal-form,
   .detail-modal-inner {
-    padding: 1.05rem 0.9rem;
+    padding: 0.95rem !important;
     max-width: 100%;
     overflow-x: hidden;
     box-sizing: border-box;
@@ -2604,33 +2637,28 @@ body {
 
   .modal-header {
     position: relative;
-    padding-top: 1.15rem;
-  }
-
-  .modal-header::before {
-    content: '';
-    position: absolute;
-    top: 0.35rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 38px;
-    height: 4px;
-    border-radius: 999px;
-    background: rgba(235, 220, 199, 0.28);
+    padding-top: 0.25rem;
+    margin-bottom: 0.65rem;
   }
 
   .auth-mode-tabs {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.35rem;
     width: 100%;
     overflow: visible;
+    margin-bottom: 0.75rem;
+  }
+
+  .auth-mode-tabs:has(#authTabEdit:not(.hidden)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .auth-mode-tabs .pill-tab,
   .auth-mode-tabs .pill {
-    padding: 0.38rem 0.4rem;
-    font-size: 0.76rem;
+    min-height: 36px !important;
+    padding: 0.3rem 0.35rem !important;
+    font-size: 0.74rem !important;
     min-width: 0;
     width: 100%;
     text-align: center;
@@ -2640,9 +2668,12 @@ body {
     text-overflow: ellipsis;
   }
 
-  /* Wood Shelf & 2-Column Mobile Poster Grid */
+  /* Remove double-padding on .wood-shelf so 2-column poster cards get full 174px width on 375px iPhone */
   .wood-shelf {
-    padding: 0.75rem;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
   .cards-grid,
@@ -2659,7 +2690,7 @@ body {
     gap: 0.75rem;
   }
 
-  /* Compact 2-Column Catalog Cards so text & buttons never overflow a 165px card */
+  /* Compact 2-Column Catalog Cards so text & buttons fit cleanly inside a 174px card */
   .cards-grid:not(.currently-shelf) .card > header,
   .cards-grid:not(.currently-shelf) .card > h3 {
     padding: 0.55rem 0.55rem 0.2rem;
@@ -2708,16 +2739,17 @@ body {
   }
 
   .cards-grid:not(.currently-shelf) .card > footer {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 0.45rem 0.5rem;
-    gap: 0.3rem;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    padding: 0.45rem 0.5rem !important;
+    gap: 0.32rem !important;
   }
 
   .cards-grid:not(.currently-shelf) .card > footer .btn {
-    min-height: 36px;
-    padding: 0.32rem 0.4rem;
-    font-size: 0.73rem;
-    width: 100%;
+    min-height: 36px !important;
+    padding: 0.3rem 0.4rem !important;
+    font-size: 0.74rem !important;
+    width: 100% !important;
   }
 
   .card-poster-wrap,
@@ -2818,10 +2850,10 @@ body {
     gap: 0.65rem;
   }
 
-  /* Profile Mobile Cards & Grids */
+  /* Profile Mobile Cards & Symmetrical 2x2 Grids */
   .profile-header-card {
-    padding: 1.05rem;
-    gap: 0.95rem;
+    padding: 1rem;
+    gap: 0.85rem;
     flex-direction: column;
     align-items: flex-start;
   }
@@ -2833,19 +2865,23 @@ body {
   }
 
   .profile-counters {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.45rem;
-    width: 100%;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.45rem !important;
+    width: 100% !important;
   }
 
   .counter-box {
-    padding: 0.45rem 0.25rem;
+    padding: 0.45rem 0.35rem;
     min-width: 0;
   }
 
   .profile-milestones-strip,
-  .profile-stats-grid,
+  .profile-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.55rem !important;
+  }
+
   .favorites-medium-columns,
   .profile-lower-grid,
   .family-friends-grid,
@@ -2881,13 +2917,13 @@ body {
   .signup-step-footer-final {
     flex-direction: column-reverse;
     align-items: stretch;
-    gap: 0.55rem;
+    gap: 0.5rem;
   }
 
   .signup-final-actions {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.45rem;
     width: 100%;
   }
 
@@ -2976,18 +3012,6 @@ body {
     font-size: 0.78rem;
   }
 
-  .hero-quick-stats {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 0.45rem !important;
-    width: 100% !important;
-  }
-
-  .stat-pill {
-    min-width: 0 !important;
-    padding: 0.45rem 0.5rem !important;
-  }
-
   .card,
   .card > header,
   .card > div,
@@ -2999,26 +3023,17 @@ body {
     box-sizing: border-box !important;
   }
 
-  .card > footer {
-    flex-wrap: wrap !important;
-    gap: 0.35rem !important;
-  }
-
-  .card > footer .btn {
-    flex: 1 1 auto;
-    min-width: 0;
-    padding-inline: 0.4rem;
-    font-size: 0.74rem;
-  }
-
   dialog[open] {
-    width: 100% !important;
-    max-width: 100% !important;
-    left: 0 !important;
-    right: 0 !important;
-    margin-inline: 0 !important;
+    position: fixed !important;
+    inset: 0 !important;
+    margin: auto !important;
+    width: calc(100vw - 20px) !important;
+    max-width: 420px !important;
+    max-height: calc(100dvh - 104px) !important;
+    border-radius: 16px !important;
     box-sizing: border-box !important;
-    overflow-x: clip !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
   }
 }
 

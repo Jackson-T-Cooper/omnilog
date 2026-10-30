@@ -3039,6 +3039,13 @@ function switchAuthModalTab(tab = 'signup', userId = state.currentUserId) {
   });
 
   const targetUser = state.users[userId] || state.users[state.currentUserId];
+  const isEditTabAllowed = Boolean(
+    normalizedTab === 'edit' || (state.currentUserId && !uiState.isSignedOut && targetUser)
+  );
+  const authTabEditBtn = document.getElementById('authTabEdit');
+  if (authTabEditBtn) {
+    authTabEditBtn.classList.toggle('hidden', !isEditTabAllowed);
+  }
 
   if (normalizedTab === 'letterboxd') {
     profileForm?.classList.add('hidden');

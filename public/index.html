@@ -14,7 +14,27 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..600&family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=20261030v4" />
+  <link rel="stylesheet" href="/styles.css?v=20261030v5" />
+  <script>
+    (function () {
+      try {
+        if ('caches' in window) {
+          caches.keys().then(function (keys) {
+            keys.forEach(function (k) {
+              if (k !== 'omnilog-pwa-v5') caches.delete(k);
+            });
+          });
+        }
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (r) {
+              r.update();
+            });
+          });
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <header class="site-header">
@@ -1093,7 +1113,7 @@
       id="mobile-nav-watchlist"
     >
       <span class="mobile-nav-icon" aria-hidden="true">⚑</span>
-      <span class="mobile-nav-label">Watchlist</span>
+      <span class="mobile-nav-label">Saved</span>
     </button>
     <button
       type="button"
@@ -1121,6 +1141,6 @@
 
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
-  <script type="module" src="/app.js?v=20261030v4"></script>
+  <script type="module" src="/app.js?v=20261030v5"></script>
 </body>
 </html>

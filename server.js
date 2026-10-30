@@ -3075,8 +3075,11 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // Static file serving
-    let filePath = pathname === '/' ? path.join(PUBLIC_DIR, 'index.html') : path.join(PUBLIC_DIR, pathname);
+    // Static file serving (including /app alias to bypass stale mobile root cache)
+    let filePath =
+      pathname === '/' || pathname === '/app' || pathname === '/index.html'
+        ? path.join(PUBLIC_DIR, 'index.html')
+        : path.join(PUBLIC_DIR, pathname);
     if (!filePath.startsWith(PUBLIC_DIR)) {
       res.writeHead(403);
       return res.end('Forbidden');
@@ -3085,7 +3088,9 @@ const server = http.createServer(async (req, res) => {
       const ext = path.extname(filePath).toLowerCase();
       res.writeHead(200, {
         'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0'
       });
       return fs.createReadStream(filePath).pipe(res);
     }
@@ -3094,7 +3099,9 @@ const server = http.createServer(async (req, res) => {
     const indexHtml = path.join(PUBLIC_DIR, 'index.html');
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'no-cache, no-store, must-revalidate'
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      Pragma: 'no-cache',
+      Expires: '0'
     });
     return fs.createReadStream(indexHtml).pipe(res);
   } catch (err) {
