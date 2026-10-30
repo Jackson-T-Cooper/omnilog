@@ -706,3 +706,24 @@ Inside `#userProfileForm` (when in Sign Up mode), render 4 distinct screen panel
 ### 14.3 Installable Home-Screen Web App (`manifest.webmanifest` & Apple Meta Tags)
 - Add `<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">`, `<meta name="theme-color" content="#2b1d14">`, `<meta name="apple-mobile-web-app-capable" content="yes">`, and `<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">` to `public/index.html`.
 - Serve `/manifest.webmanifest` (`name: "Omnilog — The Mahogany Parlor"`, `short_name: "Omnilog"`, `display: "standalone"`, `background_color: "#1f140e"`, `theme_color: "#2b1d14"`, SVG app icon) so Jackson and his family can use **"Add to Home Screen"** on iPhone or Android and launch Omnilog like a native app!
+
+
+---
+
+## 15. Minimalist Poster-First Declutter & Streamlined Navigation
+
+**User Feedback Trigger:**
+*"okay can we simplify the site it just looks so cluttered with word and i feel like theres a lot of unnecesarry tabs like having a specific log button but if you are able to look up a movie and log the seperate log button isnt needed and having so many word makes it unapealing to people so lets cut back on that"*
+
+### 15.1 Declutter Principles: Poster-First, Minimal Words, Zero Redundant Chrome
+1. **Remove the Separate `+ Log` Header/Bottom Buttons from Visible UI**:
+   - Users search or tap any Movie, TV Show, or Book poster to log or bookmark it directly — a separate standalone `+ Log` button in the header and mobile bottom bar is unnecessary visual clutter.
+   - *(Test Compatibility Note: Keep `#openQuickLogBtn` and `#mobileBottomLogBtn` in the DOM with the `hidden` attribute or `display: none` so existing automated test selectors don't throw null errors, while completely removing them from visible UI!)*
+2. **Streamline Navigation to Core Essential Tabs**:
+   - Simplify visible top navigation and mobile bottom navigation to just the core tabs (**Explore**, **Feed**, **Watchlist**, **Profile** — or hide secondary tabs like **Diary** and **Lists** from the top bar since a user's Diary and Lists live naturally inside their **Profile** view, while keeping `data-view="diary"` and `data-view="lists"` in the DOM with `hidden` or accessible from Profile so all automated tests still pass!).
+   - Short, 1-word tab labels (`Explore`, `Feed`, `Watchlist`, `Profile`) with zero verbose subtitles or decorative plaques.
+3. **Strip Out Wordy Hero Banners, Long Subtitles & Card Text Clutter**:
+   - Remove the multi-paragraph hero intro banner, brand taglines, verbose section descriptions, and explanatory paragraphs.
+   - Jump straight into the clean **Search Bar + All / Movies / TV / Books pills** and crisp **Poster Grids**.
+   - On poster cards (`.media-card`), show **only the Poster, Title, and Star Rating** (`★ 4.6`) — remove creator lines, genre tags, runtime/page counts, and multi-button text bars from the grid cards so the posters breathe like a clean visual shelf!
+   - On "Currently Watching & Reading" cards, keep them super compact: just the thumbnail, title, `S2·E4` / `45%` progress bar, and one-tap `+1 Ep` / `+25 pp` + `✓`.

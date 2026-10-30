@@ -203,10 +203,10 @@ export async function runMobileViewportAudit() {
         report.push({ viewport: vp.name, state: stateLabel, docScrollWidth: metrics.docScrollWidth });
       };
 
-      // 1. Check all main tabs (feed, discover, lists, watchlist, stats, profile)
-      for (const tab of ['feed', 'discover', 'lists', 'watchlist', 'stats', 'profile']) {
+      // 1. Check all main tabs (explore, feed, diary, lists, watchlist, profile)
+      for (const tab of ['explore', 'feed', 'diary', 'lists', 'watchlist', 'profile']) {
         await evalInPage(`(() => {
-          const btn = document.querySelector('[data-mobile-nav="${tab}"], [data-tab="${tab}"]');
+          const btn = document.querySelector('[data-mobile-nav="${tab}"], [data-view="${tab}"], [data-tab="${tab}"]');
           if (btn) btn.click();
         })()`);
         await new Promise((r) => setTimeout(r, 120));

@@ -552,32 +552,45 @@ function getCloudBackupStatus() {
   };
 }
 
+let githubBackupSyncChain = Promise.resolve();
+
 async function syncToGitHubRepoContents(token, repoFullName, envelope) {
-  const apiUrl = `https://api.github.com/repos/${repoFullName}/contents/${CLOUD_GIST_FILENAME}`;
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    Accept: 'application/vnd.github+json',
-    'Content-Type': 'application/json',
-    'User-Agent': 'Omnilog-Cloud-Backup'
+  const runSync = async () => {
+    const apiUrl = `https://api.github.com/repos/${repoFullName}/contents/${CLOUD_GIST_FILENAME}`;
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'Omnilog-Cloud-Backup'
+    };
+    const contentBase64 = Buffer.from(JSON.stringify(envelope, null, 2), 'utf8').toString('base64');
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      let existingSha = null;
+      const getRes = await fetch(apiUrl, { headers });
+      if (getRes.ok) {
+        const existingData = await getRes.json();
+        existingSha = existingData?.sha || null;
+      }
+      const putBody = {
+        message: `Automated AES-256-GCM cloud backup (${envelope.backedUpAt})`,
+        content: contentBase64
+      };
+      if (existingSha) putBody.sha = existingSha;
+      const putRes = await fetch(apiUrl, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(putBody)
+      });
+      if (putRes.ok) return true;
+      if (putRes.status !== 409 && putRes.status !== 422) return false;
+    }
+    return false;
   };
-  let existingSha = null;
-  const getRes = await fetch(apiUrl, { headers });
-  if (getRes.ok) {
-    const existingData = await getRes.json();
-    existingSha = existingData?.sha || null;
-  }
-  const contentBase64 = Buffer.from(JSON.stringify(envelope, null, 2), 'utf8').toString('base64');
-  const putBody = {
-    message: `Automated AES-256-GCM cloud backup (${envelope.backedUpAt})`,
-    content: contentBase64
-  };
-  if (existingSha) putBody.sha = existingSha;
-  const putRes = await fetch(apiUrl, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify(putBody)
-  });
-  return putRes.ok;
+
+  const next = githubBackupSyncChain.then(runSync, runSync);
+  githubBackupSyncChain = next.catch(() => false);
+  return next;
 }
 
 async function fetchFromGitHubRepoContents(token, repoFullName) {

@@ -14,14 +14,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..600&family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=20261030v6" />
+  <link rel="stylesheet" href="/styles.css?v=20261030v7" />
   <script>
     (function () {
       try {
         if ('caches' in window) {
           caches.keys().then(function (keys) {
             keys.forEach(function (k) {
-              if (k !== 'omnilog-pwa-v6') caches.delete(k);
+              if (k !== 'omnilog-pwa-v7') caches.delete(k);
             });
           });
         }
@@ -43,7 +43,7 @@
         <span class="brand-emblem" aria-hidden="true">O</span>
         <span class="brand-title-stack">
           <span class="brand-text">Omnilog</span>
-          <span class="brand-tag">Movies · TV Shows · Books</span>
+          <span class="brand-tag hidden">Movies · TV Shows · Books</span>
         </span>
       </a>
 
@@ -58,11 +58,11 @@
           Diary
           <span class="nav-badge" id="navDiaryCount">0</span>
         </button>
-        <button type="button" class="nav-btn" data-nav-view="watchlist" id="nav-watchlist">
+        <button type="button" class="nav-btn hidden" data-nav-view="watchlist" id="nav-watchlist">
           Watchlist
           <span class="nav-badge" id="navWatchlistCount">0</span>
         </button>
-        <button type="button" class="nav-btn" data-nav-view="lists" id="nav-lists">
+        <button type="button" class="nav-btn hidden" data-nav-view="lists" id="nav-lists">
           Lists
         </button>
         <button type="button" class="nav-btn" data-nav-view="profile" id="nav-profile">
@@ -71,7 +71,7 @@
       </nav>
 
       <div class="header-actions">
-        <button type="button" class="btn btn-primary btn-log-cta" id="openLogModalBtn">
+        <button type="button" class="btn btn-primary btn-log-cta hidden" id="openLogModalBtn" hidden>
           + Log
         </button>
         <div class="header-user-controls" id="headerUserControls"></div>
@@ -82,7 +82,7 @@
   <main class="app-main" id="appMain">
     <!-- ==================== VIEW 1: EXPLORE / CATALOG ==================== -->
     <section class="view-section" id="view-explore" aria-labelledby="exploreHeading">
-      <div class="hero-banner">
+      <div class="hero-banner hidden" hidden>
         <div class="hero-copy">
           <p class="eyebrow">A home for what you watch &amp; read</p>
           <h1 id="exploreHeading">Keep track of the films, shows, and books you love.</h1>
@@ -94,35 +94,20 @@
       </div>
 
       <div class="controls-bar" role="region" aria-label="Catalog Filters and Search">
-        <div class="medium-tabs" role="tablist" aria-label="Filter by Media Type">
-          <button type="button" role="tab" aria-selected="true" class="pill-tab is-active" data-filter-type="all">
-            All
-          </button>
-          <button type="button" role="tab" aria-selected="false" class="pill-tab" data-filter-type="movie">
-            Movies
-          </button>
-          <button type="button" role="tab" aria-selected="false" class="pill-tab" data-filter-type="tv">
-            TV Shows
-          </button>
-          <button type="button" role="tab" aria-selected="false" class="pill-tab" data-filter-type="book">
-            Books
-          </button>
-        </div>
-
         <div class="search-and-selects">
           <div class="search-box">
             <input
               type="search"
               id="catalogSearchInput"
-              placeholder="Search movies, TV shows, books, creators..."
+              placeholder="Search movies, shows, books..."
               aria-label="Search catalog or online APIs"
             />
-            <button type="button" class="btn btn-secondary btn-sm" id="liveApiSearchBtn" title="Search iTunes, TVMaze &amp; Open Library">
-              Search More Online
+            <button type="button" class="btn btn-secondary btn-sm" id="liveApiSearchBtn" title="Search online">
+              Search
             </button>
           </div>
 
-          <select id="genreFilterSelect" aria-label="Filter by Genre">
+          <select id="genreFilterSelect" class="hidden" aria-label="Filter by Genre" hidden>
             <option value="all">All Genres</option>
             <option value="Sci-Fi">Sci-Fi</option>
             <option value="Drama">Drama</option>
@@ -136,7 +121,7 @@
             <option value="History">History</option>
           </select>
 
-          <select id="sortFilterSelect" aria-label="Sort Catalog">
+          <select id="sortFilterSelect" class="hidden" aria-label="Sort Catalog" hidden>
             <option value="popular">Sort: Popularity</option>
             <option value="rating">Sort: Highest Rated</option>
             <option value="newest">Sort: Newest</option>
@@ -144,8 +129,23 @@
             <option value="title">Sort: Title (A–Z)</option>
           </select>
 
-          <button type="button" class="btn btn-ghost btn-sm" id="openCustomMediaBtn" data-open-custom-media="true">
+          <button type="button" class="btn btn-ghost btn-sm hidden" id="openCustomMediaBtn" data-open-custom-media="true" hidden>
             + Add Custom Title
+          </button>
+        </div>
+
+        <div class="medium-tabs" role="tablist" aria-label="Filter by Media Type">
+          <button type="button" role="tab" aria-selected="true" class="pill-tab is-active" data-filter-type="all">
+            All
+          </button>
+          <button type="button" role="tab" aria-selected="false" class="pill-tab" data-filter-type="movie">
+            Movies
+          </button>
+          <button type="button" role="tab" aria-selected="false" class="pill-tab" data-filter-type="tv">
+            TV
+          </button>
+          <button type="button" role="tab" aria-selected="false" class="pill-tab" data-filter-type="book">
+            Books
           </button>
         </div>
       </div>
@@ -154,30 +154,29 @@
       <div class="external-results-panel hidden" id="externalResultsPanel" aria-live="polite">
         <div class="section-header">
           <div>
-            <p class="eyebrow">ONLINE SEARCH RESULTS</p>
-            <h2>Results from iTunes, TVMaze &amp; Open Library</h2>
-            <p class="section-sub" id="externalSearchStatus">Click any title to view details, log it, or add it to your watchlist.</p>
+            <h2>Search Results</h2>
+            <p class="section-sub hidden" id="externalSearchStatus"></p>
           </div>
-          <button type="button" class="btn btn-ghost btn-sm" id="clearExternalResultsBtn">Close Results</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="clearExternalResultsBtn">Clear</button>
         </div>
         <div class="cards-grid wood-shelf" id="externalCardsGrid"></div>
       </div>
 
-      <div class="section-header">
-        <div>
-          <p class="eyebrow">IN PROGRESS</p>
-          <h2 id="currentlyTrackingTitle">Currently Watching &amp; Reading</h2>
-          <p class="section-sub" id="currentlyTrackingCountLabel">Track active seasons, episodes, and pages with one tap</p>
+      <div id="currentlyTrackingSection" class="currently-explore-section hidden">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow hidden" hidden>Currently Watching &amp; Reading</p>
+            <h2 id="currentlyTrackingTitle">In Progress</h2>
+            <p class="section-sub hidden" id="currentlyTrackingCountLabel"></p>
+          </div>
         </div>
+        <div class="cards-grid wood-shelf currently-shelf" id="currentlyTrackingGrid" style="margin-bottom: 1.5rem;"></div>
       </div>
 
-      <div class="cards-grid wood-shelf currently-shelf" id="currentlyTrackingGrid" style="margin-bottom: 2rem;"></div>
-
-      <div class="section-header">
+      <div class="section-header hidden">
         <div>
-          <p class="eyebrow">CATALOG</p>
-          <h2 id="catalogSectionTitle">Popular Movies, TV Shows &amp; Books</h2>
-          <p class="section-sub" id="catalogCountLabel">Showing 24 titles across Movies, TV Shows, and Books</p>
+          <h2 id="catalogSectionTitle">Popular</h2>
+          <p class="section-sub hidden" id="catalogCountLabel"></p>
         </div>
       </div>
 
@@ -188,25 +187,23 @@
     <section class="view-section hidden" id="view-feed" aria-labelledby="feedHeading">
       <div class="section-header">
         <div>
-          <p class="eyebrow">SOCIAL</p>
-          <h1 id="feedHeading">Activity Feed</h1>
-          <p class="section-sub">Recent ratings, reviews, and progress updates from you, your family, and friends.</p>
+          <h1 id="feedHeading">Feed</h1>
         </div>
-        <div style="display:flex;gap:0.65rem;flex-wrap:wrap;align-items:center;">
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
           <div class="medium-tabs" role="tablist" aria-label="Filter Activity Feed by Scope">
-            <button type="button" class="pill-tab is-active" data-feed-scope="all">All Members</button>
+            <button type="button" class="pill-tab is-active" data-feed-scope="all">Everyone</button>
             <button type="button" class="pill-tab" data-feed-scope="following">Following</button>
           </div>
           <div class="medium-tabs" role="tablist" aria-label="Filter Activity Feed by Medium">
             <button type="button" class="pill-tab is-active" data-feed-type="all">All</button>
             <button type="button" class="pill-tab" data-feed-type="movie">Movies</button>
-            <button type="button" class="pill-tab" data-feed-type="tv">TV Shows</button>
+            <button type="button" class="pill-tab" data-feed-type="tv">TV</button>
             <button type="button" class="pill-tab" data-feed-type="book">Books</button>
           </div>
         </div>
       </div>
 
-      <div class="family-friends-strip" id="feedFriendsDirectory" style="margin-bottom: 1.5rem;"></div>
+      <div class="family-friends-strip hidden" id="feedFriendsDirectory" style="margin-bottom: 1.5rem;"></div>
 
       <div class="feed-stream" id="activityFeedContainer"></div>
     </section>
@@ -214,40 +211,44 @@
     <!-- ==================== VIEW 3: DIARY ==================== -->
     <section class="view-section hidden" id="view-diary" aria-labelledby="diaryHeading">
       <div class="section-header" id="diaryFilterBar">
-        <div>
-          <p class="eyebrow">HISTORY</p>
-          <h1 id="diaryHeading">Your Diary</h1>
-          <p class="section-sub">Everything you have watched and read, organized by date.</p>
+        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+          <h1 id="diaryHeading" style="margin:0;">Diary</h1>
+          <div class="medium-tabs" role="tablist" aria-label="Diary or Saved Watchlist">
+            <button type="button" class="pill-tab is-active" data-nav-view="diary" data-subview-pill="diary">Logged</button>
+            <button type="button" class="pill-tab" data-nav-view="watchlist" data-subview-pill="watchlist">Saved</button>
+            <button type="button" class="pill-tab" data-nav-view="lists" data-subview-pill="lists">Lists</button>
+          </div>
         </div>
-        <div style="display:flex;gap:0.65rem;flex-wrap:wrap;align-items:center;">
-          <button type="button" class="btn btn-ghost btn-sm" id="exportDiaryCsvBtn" data-export-diary-csv="true">
-            Export CSV
-          </button>
-          <button type="button" class="btn btn-secondary btn-sm" id="diaryImportLetterboxdBtn" data-open-user-modal="letterboxd">
-            Import from Letterboxd
-          </button>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
           <div class="medium-tabs" role="tablist" aria-label="Filter Diary by Medium">
             <button type="button" class="pill-tab is-active" data-diary-type="all">All</button>
             <button type="button" class="pill-tab" data-diary-type="movie">Movies</button>
-            <button type="button" class="pill-tab" data-diary-type="tv">TV Shows</button>
+            <button type="button" class="pill-tab" data-diary-type="tv">TV</button>
             <button type="button" class="pill-tab" data-diary-type="book">Books</button>
           </div>
-          <button type="button" class="pill-tab" id="diaryLikedFilterBtn" aria-pressed="false">
+          <button type="button" class="pill-tab hidden" id="diaryLikedFilterBtn" aria-pressed="false" hidden>
             ♥ Liked
           </button>
           <input
             type="search"
             id="diarySearchInput"
+            class="hidden"
             placeholder="Filter diary..."
             aria-label="Search diary entries"
-            style="max-width:175px;padding:0.42rem 0.7rem;font-size:0.84rem;"
+            hidden
           />
-          <select id="diarySortSelect" aria-label="Sort Diary">
+          <select id="diarySortSelect" class="hidden" aria-label="Sort Diary" hidden>
             <option value="newest">Sort: Newest First</option>
             <option value="oldest">Sort: Oldest First</option>
             <option value="rating">Sort: Highest Rated</option>
             <option value="title">Sort: Title (A–Z)</option>
           </select>
+          <button type="button" class="btn btn-ghost btn-sm hidden" id="exportDiaryCsvBtn" data-export-diary-csv="true" hidden>
+            Export CSV
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm hidden" id="diaryImportLetterboxdBtn" data-open-user-modal="letterboxd" hidden>
+            Import from Letterboxd
+          </button>
         </div>
       </div>
 
@@ -257,19 +258,22 @@
     <!-- ==================== VIEW 4: WATCHLIST ==================== -->
     <section class="view-section hidden" id="view-watchlist" aria-labelledby="watchlistHeading">
       <div class="section-header">
-        <div>
-          <p class="eyebrow">SAVED FOR LATER</p>
-          <h1 id="watchlistHeading">Watchlist</h1>
-          <p class="section-sub">Movies, TV shows, and books you want to watch or read next.</p>
+        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+          <h1 id="watchlistHeading" style="margin:0;">Saved</h1>
+          <div class="medium-tabs" role="tablist" aria-label="Diary or Saved Watchlist">
+            <button type="button" class="pill-tab" data-nav-view="diary" data-subview-pill="diary">Logged</button>
+            <button type="button" class="pill-tab is-active" data-nav-view="watchlist" data-subview-pill="watchlist">Saved</button>
+            <button type="button" class="pill-tab" data-nav-view="lists" data-subview-pill="lists">Lists</button>
+          </div>
         </div>
-        <div style="display:flex;gap:0.65rem;flex-wrap:wrap;align-items:center;">
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
           <div class="medium-tabs" role="tablist" aria-label="Filter Watchlist by Medium">
             <button type="button" class="pill-tab is-active" data-watchlist-type="all">All</button>
             <button type="button" class="pill-tab" data-watchlist-type="movie">Movies</button>
-            <button type="button" class="pill-tab" data-watchlist-type="tv">TV Shows</button>
+            <button type="button" class="pill-tab" data-watchlist-type="tv">TV</button>
             <button type="button" class="pill-tab" data-watchlist-type="book">Books</button>
           </div>
-          <select id="watchlistSortSelect" aria-label="Sort Watchlist">
+          <select id="watchlistSortSelect" class="hidden" aria-label="Sort Watchlist" hidden>
             <option value="added">Sort: Recently Added</option>
             <option value="rating">Sort: Highest Rated</option>
             <option value="year">Sort: Release Year</option>
@@ -284,12 +288,15 @@
     <!-- ==================== VIEW 5: CUSTOM LISTS ==================== -->
     <section class="view-section hidden" id="view-lists" aria-labelledby="listsHeading">
       <div class="section-header">
-        <div>
-          <p class="eyebrow">COLLECTIONS</p>
-          <h1 id="listsHeading">Custom Lists</h1>
-          <p class="section-sub">Curated lists across movies, TV shows, and books.</p>
+        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+          <h1 id="listsHeading" style="margin:0;">Lists</h1>
+          <div class="medium-tabs" role="tablist" aria-label="Diary or Saved Watchlist">
+            <button type="button" class="pill-tab" data-nav-view="diary" data-subview-pill="diary">Logged</button>
+            <button type="button" class="pill-tab" data-nav-view="watchlist" data-subview-pill="watchlist">Saved</button>
+            <button type="button" class="pill-tab is-active" data-nav-view="lists" data-subview-pill="lists">Lists</button>
+          </div>
         </div>
-        <button type="button" class="btn btn-primary" id="openCreateListBtn">
+        <button type="button" class="btn btn-primary btn-sm" id="openCreateListBtn">
           + New List
         </button>
       </div>
@@ -301,21 +308,20 @@
     <section class="view-section hidden" id="view-profile" aria-labelledby="profileHeading">
       <div class="viewing-friend-banner hidden" id="viewingFriendBanner"></div>
 
-      <div class="family-friends-strip" id="profileFriendsDirectory" style="margin-bottom: 1.4rem;"></div>
+      <div class="family-friends-strip hidden" id="profileFriendsDirectory" style="margin-bottom: 1.4rem;"></div>
 
       <div class="profile-header-card" id="profileHeaderCard"></div>
 
-      <div class="profile-milestones-strip" id="profileMilestonesGrid"></div>
+      <div class="profile-milestones-strip hidden" id="profileMilestonesGrid"></div>
 
-      <div class="profile-stats-grid" id="profileStatsGrid"></div>
+      <div class="profile-stats-grid hidden" id="profileStatsGrid"></div>
 
       <!-- Currently Watching & Reading on Profile -->
-      <div class="currently-profile-section" style="margin-bottom: 2rem;">
+      <div class="currently-profile-section hidden" id="profileCurrentlySection" style="margin-bottom: 1.5rem;">
         <div class="section-header">
           <div>
-            <p class="eyebrow">IN PROGRESS</p>
-            <h2 id="profileCurrentlyHeading">Currently Watching &amp; Reading</h2>
-            <p class="section-sub" id="profileCurrentlySub">Your active TV shows and books with one-tap progress controls.</p>
+            <h2 id="profileCurrentlyHeading">In Progress</h2>
+            <p class="section-sub hidden" id="profileCurrentlySub"></p>
           </div>
         </div>
         <div class="cards-grid wood-shelf currently-shelf" id="profileCurrentlyGrid"></div>
@@ -325,9 +331,8 @@
       <div class="favorites-showcase-section">
         <div class="section-header">
           <div>
-            <p class="eyebrow">FAVORITES</p>
-            <h2 id="profileFavoritesHeading">Top 4 Favorites</h2>
-            <p class="section-sub" id="profileFavoritesSub">Click any poster below to edit your Top 4 Movies, TV Shows, or Books.</p>
+            <h2 id="profileFavoritesHeading">Top 4</h2>
+            <p class="section-sub hidden" id="profileFavoritesSub"></p>
           </div>
         </div>
         <div class="favorites-medium-columns" id="profileFavoritesContainer"></div>
@@ -335,7 +340,7 @@
 
       <!-- Rating Histogram & Recent Diary -->
       <div class="profile-lower-grid">
-        <div class="histogram-card" id="profileHistogramCard"></div>
+        <div class="histogram-card hidden" id="profileHistogramCard"></div>
         <div class="recent-logs-card" id="profileRecentLogsCard"></div>
       </div>
     </section>
@@ -1087,9 +1092,10 @@
     </button>
     <button
       type="button"
-      class="mobile-nav-btn mobile-nav-log-btn"
+      class="mobile-nav-btn mobile-nav-log-btn hidden"
       id="mobileBottomLogBtn"
       aria-label="Log a film, show, or book"
+      hidden
     >
       <span class="mobile-nav-log-pill">+ Log</span>
     </button>
@@ -1106,22 +1112,24 @@
     </button>
     <button
       type="button"
-      class="mobile-nav-btn"
+      class="mobile-nav-btn hidden"
       data-nav-view="watchlist"
       data-mobile-nav="watchlist"
       data-mobile-tab="watchlist"
       id="mobile-nav-watchlist"
+      hidden
     >
       <span class="mobile-nav-icon" aria-hidden="true">⚑</span>
       <span class="mobile-nav-label">Saved</span>
     </button>
     <button
       type="button"
-      class="mobile-nav-btn"
+      class="mobile-nav-btn hidden"
       data-nav-view="lists"
       data-mobile-nav="lists"
       data-mobile-tab="lists"
       id="mobile-nav-lists"
+      hidden
     >
       <span class="mobile-nav-icon" aria-hidden="true">☰</span>
       <span class="mobile-nav-label">Lists</span>
@@ -1141,6 +1149,6 @@
 
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
-  <script type="module" src="/app.js?v=20261030v6"></script>
+  <script type="module" src="/app.js?v=20261030v7"></script>
 </body>
 </html>

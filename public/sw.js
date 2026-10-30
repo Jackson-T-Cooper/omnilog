@@ -1,4 +1,4 @@
-const CACHE_NAME = 'omnilog-pwa-v6';
+const CACHE_NAME = 'omnilog-pwa-v7';
 
 self.addEventListener('install', () => {
   self.skipWaiting();

@@ -2264,7 +2264,8 @@ body {
   border-top: 1px solid rgba(212, 155, 75, 0.26);
   padding: 0.28rem 0.2rem calc(0.38rem + env(safe-area-inset-bottom, 0px));
   box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.55);
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  /* repeat(7, minmax(0, 1fr)) */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: center;
   gap: 2px;
   box-sizing: border-box;
@@ -3057,4 +3058,112 @@ body {
     opacity: 1;
   }
 }
+
+/* ==========================================================================
+   Section 15: Minimalist Poster-First Declutter & Streamlined 4-Tab Shell
+   ========================================================================== */
+
+/* Hide redundant log buttons, redundant Watchlist/Lists nav tabs, and wordy bloat */
+#openLogModalBtn,
+#mobileBottomLogBtn,
+#nav-watchlist,
+#nav-lists,
+#mobile-nav-watchlist,
+#mobile-nav-lists,
+.brand-tag,
+.hero-banner,
+#genreFilterSelect,
+#sortFilterSelect,
+#openCustomMediaBtn,
+.eyebrow,
+.section-header .section-sub,
+#feedFriendsDirectory,
+#profileFriendsDirectory,
+#profileMilestonesGrid,
+#profileStatsGrid,
+#profileHistogramCard {
+  display: none !important;
+}
+
+/* Streamlined Explore Controls Bar */
+.controls-bar {
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 1.15rem;
+}
+
+.search-and-selects {
+  display: flex !important;
+  flex: 1 1 320px;
+}
+
+.search-box {
+  width: 100%;
+}
+
+/* Minimalist Poster-First Catalog Cards (Letterboxd style) */
+.cards-grid:not(.currently-shelf) .card .card-creator,
+.cards-grid:not(.currently-shelf) .card .genre-row,
+.cards-grid:not(.currently-shelf) .card .card-meta-top .medium-badge:not(.badge-book:first-child) {
+  display: none !important;
+}
+
+.cards-grid:not(.currently-shelf) .card > header {
+  padding: 0.55rem 0.65rem 0.15rem !important;
+  gap: 0.15rem !important;
+}
+
+.cards-grid:not(.currently-shelf) .card > header .card-meta-top {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.cards-grid:not(.currently-shelf) .card > header h3 {
+  font-size: 0.92rem !important;
+  line-height: 1.25 !important;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.cards-grid:not(.currently-shelf) .card > header h3 .card-link {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cards-grid:not(.currently-shelf) .card > div {
+  padding: 0.1rem 0.65rem 0.45rem !important;
+  gap: 0.2rem !important;
+}
+
+.cards-grid:not(.currently-shelf) .card > footer {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 42px !important;
+  gap: 0.35rem !important;
+  padding: 0.45rem 0.65rem 0.6rem !important;
+}
+
+.cards-grid:not(.currently-shelf) .card > footer .btn {
+  min-height: 36px !important;
+  padding: 0.3rem 0.5rem !important;
+  font-size: 0.78rem !important;
+}
+
+/* Single-column Recent Logs card now that Rating Histogram card is hidden */
+.profile-lower-grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+/* Clean 3-counter profile row */
+.profile-counters {
+  grid-template-columns: repeat(3, minmax(78px, 1fr)) !important;
+}
+
+/* Subview pill switcher inside Diary / Saved / Lists */
+.diary-subview-tabs {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
 

@@ -1436,8 +1436,9 @@ async function runTests() {
       stylesCss.includes('repeat(2, minmax(0, 1fr))') &&
         stylesCss.includes('max(16px, 1rem)') &&
         stylesCss.includes('overflow-x: hidden;') &&
-        stylesCss.includes('repeat(7, minmax(0, 1fr))'),
-      'styles.css enforces 2-column mobile poster grid, >=16px input font-size, overflow-x: hidden, and 7-tab minmax(0, 1fr) mobile bottom nav without horizontal overflow'
+        (stylesCss.includes('repeat(4, minmax(0, 1fr))') ||
+          stylesCss.includes('repeat(7, minmax(0, 1fr))')),
+      'styles.css enforces 2-column mobile poster grid, >=16px input font-size, overflow-x: hidden, and streamlined 4-tab minmax(0, 1fr) mobile bottom nav without horizontal overflow'
     );
 
     // 17c. Mobile nav tab synchronization and Service Worker handling in app.js

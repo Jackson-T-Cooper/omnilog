@@ -568,7 +568,7 @@ function renderMediaCard(item, options = {}) {
   // 3. <div> (Content)
   // 4. <footer> (Footer with independent buttons)
   return `
-    <article class="card" data-media-id="${escapeHtml(item.id)}" data-media-type="${escapeHtml(item.type)}">
+    <article class="card media-card" data-media-id="${escapeHtml(item.id)}" data-media-type="${escapeHtml(item.type)}">
       <img
         src="${escapeHtml(item.posterUrl)}"
         alt="${escapeHtml(item.title)} poster"
@@ -601,10 +601,10 @@ function renderMediaCard(item, options = {}) {
       </div>
       <footer>
         <button type="button" class="btn btn-primary btn-sm" data-quick-log="${escapeHtml(item.id)}">
-          ${myLog ? 'Log Again' : '+ Log'}
+          ${myLog ? 'Logged ✓' : 'Log'}
         </button>
-        <button type="button" class="btn ${inWatchlist ? 'btn-secondary' : 'btn-ghost'} btn-sm" data-toggle-watchlist="${escapeHtml(item.id)}">
-          ${inWatchlist ? '✓ In Watchlist' : '+ Watchlist'}
+        <button type="button" class="btn ${inWatchlist ? 'btn-secondary' : 'btn-ghost'} btn-sm" data-toggle-watchlist="${escapeHtml(item.id)}" title="${inWatchlist ? 'Saved' : 'Save for later'}" aria-label="${inWatchlist ? 'Saved' : 'Save'}">
+          ${inWatchlist ? '✓' : '⚑'}
         </button>
       </footer>
     </article>
@@ -733,18 +733,17 @@ function renderCurrentlyWatchingShelf() {
     const filteredForExplore = allActiveLogs.filter((l) =>
       uiState.exploreType === 'all' ? true : l.mediaType === uiState.exploreType
     );
+    const exploreSection = document.getElementById('currentlyTrackingSection');
+    if (exploreSection) {
+      exploreSection.classList.toggle('hidden', filteredForExplore.length === 0);
+    }
 
     if (exploreCountLabel) {
-      exploreCountLabel.textContent = `${filteredForExplore.length} active title${filteredForExplore.length === 1 ? '' : 's'} in progress — use +1 Ep or +25 pp to update instantly`;
+      exploreCountLabel.textContent = `${filteredForExplore.length} in progress`;
     }
 
     if (filteredForExplore.length === 0) {
-      exploreGrid.innerHTML = `
-        <div class="stat-breakdown-card" style="grid-column: 1 / -1; text-align: center;">
-          <h3>Nothing in progress right now</h3>
-          <p class="section-sub">Open any TV show or book and click "Start Watching" or "Start Reading" to keep track of it here.</p>
-        </div>
-      `;
+      exploreGrid.innerHTML = '';
     } else {
       exploreGrid.innerHTML = filteredForExplore.map((log) => renderCurrentlyCard(log)).join('');
     }
@@ -763,14 +762,13 @@ function renderCurrentlyWatchingShelf() {
         isInProgressStatus(l.progress.status) &&
         (l.mediaType === 'tv' || l.mediaType === 'book')
     );
+    const profileSection = document.getElementById('profileCurrentlySection');
+    if (profileSection) {
+      profileSection.classList.toggle('hidden', profileActiveLogs.length === 0);
+    }
 
     if (profileActiveLogs.length === 0) {
-      profileGrid.innerHTML = `
-        <div class="stat-breakdown-card" style="grid-column: 1 / -1; text-align: center;">
-          <h3>Nothing in progress right now</h3>
-          <p class="section-sub">${isOwnProfile ? 'Start watching a show or reading a book from Explore to track your progress here.' : 'No shows or books in progress right now.'}</p>
-        </div>
-      `;
+      profileGrid.innerHTML = '';
     } else {
       profileGrid.innerHTML = profileActiveLogs
         .map((log) => renderCurrentlyCard(log, { readOnly: !isOwnProfile }))
@@ -1430,61 +1428,36 @@ function renderProfile() {
       <div class="profile-identity">
         <div class="profile-avatar-lg" style="background:var(--accent-gold)">O</div>
         <div>
-          <h1 id="profileHeading" style="margin-bottom:0.15rem;">Your shelf awaits</h1>
-          <p class="section-sub">Sign in or create an account to start your personal diary</p>
-          <p style="margin:0.45rem 0 0;max-width:620px;color:var(--text-secondary);">
-            Keep track of the films, shows, and books you love, pick your Top 4 favorites in each medium, and share notes with friends.
-          </p>
-          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.75rem;">
+          <h1 id="profileHeading" style="margin-bottom:0.15rem;">Profile</h1>
+          <p class="section-sub">Sign in to track your favorites &amp; diary</p>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.6rem;">
             <button type="button" class="btn btn-primary btn-sm" data-open-user-modal="create">
               Create account
             </button>
             <button type="button" class="btn btn-secondary btn-sm" data-open-user-modal="login">
               Sign in
             </button>
-            <button type="button" class="btn btn-ghost btn-sm" data-open-user-modal="letterboxd">
-              Import from Letterboxd
-            </button>
           </div>
         </div>
       </div>
       <div class="profile-counters">
         <div class="counter-box"><strong>0</strong><span>Logged</span></div>
-        <div class="counter-box"><strong>0</strong><span>Lists</span></div>
         <div class="counter-box"><strong>0</strong><span>Followers</span></div>
         <div class="counter-box"><strong>0</strong><span>Following</span></div>
       </div>
     `;
 
-    statsEl.innerHTML = `
-      <div class="stat-breakdown-card">
-        <span class="medium-badge badge-movie">MOVIES</span>
-        <h3 style="margin-top:0.5rem;">0 Films Watched</h3>
-        <p class="section-sub">Sign in to track your cinema ratings &amp; formats</p>
-      </div>
-      <div class="stat-breakdown-card">
-        <span class="medium-badge badge-tv">TV SHOWS</span>
-        <h3 style="margin-top:0.5rem;">0 Series Logged</h3>
-        <p class="section-sub">Sign in to track seasons &amp; episodes</p>
-      </div>
-      <div class="stat-breakdown-card">
-        <span class="medium-badge badge-book">BOOKS</span>
-        <h3 style="margin-top:0.5rem;">0 Books Read</h3>
-        <p class="section-sub">Sign in to track page progress &amp; reviews</p>
-      </div>
-    `;
+    statsEl.innerHTML = '';
 
     favsEl.innerHTML = `
       <div class="stat-breakdown-card" style="grid-column: 1 / -1; text-align: center;">
-        <h3>Create Your Account to Pick Your Top 4 Favorites</h3>
-        <p class="section-sub">Showcase your Top 4 all-time Movies, TV Shows, and Books on your profile once you sign up.</p>
+        <h3>Sign in to pick your Top 4</h3>
       </div>
     `;
 
     const emptyBuckets = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0];
     histEl.innerHTML = `
-      <p class="eyebrow">RATING SPREAD</p>
-      <h3>Half-Star Rating Distribution (0.5★ – 5.0★)</h3>
+      <h3>Rating Spread</h3>
       <div class="histogram-bars">
         ${emptyBuckets
           .map(
@@ -1501,9 +1474,8 @@ function renderProfile() {
     `;
 
     recentEl.innerHTML = `
-      <p class="eyebrow">RECENT DIARY SNAPSHOT</p>
-      <h3>Latest Logged Activity</h3>
-      <p class="section-sub" style="margin-top:0.75rem;">No logged reviews yet. Create your account to log your first title!</p>
+      <h3>Recent Logs</h3>
+      <p class="section-sub" style="margin-top:0.5rem;">No logs yet.</p>
     `;
     return;
   }
@@ -1623,57 +1595,54 @@ function renderProfile() {
 
   const profileActionButtonsHtml = isOwnProfile
     ? `
-      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.65rem;">
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem;">
         <button type="button" class="btn btn-secondary btn-sm" data-open-user-modal="edit">
           Edit profile
         </button>
-        <button type="button" class="btn btn-secondary btn-sm" data-open-user-modal="letterboxd">
-          Import from Letterboxd
+        <button type="button" class="btn btn-ghost btn-sm" data-open-user-modal="letterboxd">
+          Import
         </button>
-        <button type="button" class="btn btn-ghost btn-sm" id="profileExportDiaryCsvBtn" data-export-diary-csv="${escapeHtml(user.id)}">
+        <button type="button" class="btn btn-ghost btn-sm hidden" id="profileExportDiaryCsvBtn" data-export-diary-csv="${escapeHtml(user.id)}" hidden>
           Export CSV
-        </button>
-        <button type="button" class="btn btn-ghost btn-sm" data-open-user-modal="login">
-          Switch account
         </button>
       </div>
     `
     : `
-      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.65rem;">
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem;">
         <button type="button" class="btn ${isFollowing ? 'btn-secondary' : 'btn-primary'} btn-sm" data-toggle-follow="${escapeHtml(user.id)}">
           ${isFollowing ? '✓ Following' : '+ Follow'}
         </button>
         <button type="button" class="btn btn-ghost btn-sm" data-view-user="${escapeHtml(state.currentUserId)}">
-          ← My Profile
+          ← Back
         </button>
       </div>
     `;
+
+  const showBio =
+    user.bio &&
+    !user.bio.startsWith('Tracking movies, TV shows, and books on Omnilog');
 
   headerEl.innerHTML = `
     <div class="profile-identity">
       <div class="profile-avatar-lg" style="background:${escapeHtml(user.avatarColor || '#10b981')}">${escapeHtml(user.avatar || 'JC')}</div>
       <div>
-        <h1 id="profileHeading" style="margin-bottom:0.15rem;">${escapeHtml(user.name)}</h1>
-        <p class="section-sub">${escapeHtml(user.handle)}${user.location && user.location !== 'Family Circle' ? ` · ${escapeHtml(user.location)}` : ''}</p>
-        <p style="margin:0.45rem 0 0;max-width:620px;color:var(--text-secondary);">${escapeHtml(user.bio)}</p>
+        <h1 id="profileHeading" style="margin-bottom:0.1rem;">${escapeHtml(user.name)}</h1>
+        <p class="section-sub">${escapeHtml(user.handle)}${user.location && user.location !== 'Family Circle' && user.location !== 'Omnilog' ? ` · ${escapeHtml(user.location)}` : ''}</p>
+        ${showBio ? `<p style="margin:0.35rem 0 0;max-width:520px;color:var(--text-secondary);font-size:0.9rem;">${escapeHtml(user.bio)}</p>` : ''}
         ${profileActionButtonsHtml}
       </div>
     </div>
     <div class="profile-counters">
       <div class="counter-box">
         <strong>${myLogs.length}</strong>
-        <span>Total Logged</span>
+        <span>Logged</span>
       </div>
       <div class="counter-box">
-        <strong>${state.lists.filter((l) => l.userId === user.id).length}</strong>
-        <span>Lists</span>
-      </div>
-      <div class="counter-box">
-        <strong>${user.followersCount ?? 1}</strong>
+        <strong>${user.followersCount ?? 0}</strong>
         <span>Followers</span>
       </div>
       <div class="counter-box">
-        <strong>${user.followingCount ?? (user.followingIds?.length || 1)}</strong>
+        <strong>${user.followingCount ?? (user.followingIds?.length || 0)}</strong>
         <span>Following</span>
       </div>
     </div>
@@ -1699,9 +1668,9 @@ function renderProfile() {
 
   // Top 4 Favorites per Medium
   const mediums = [
-    { key: 'movie', label: 'Top 4 Favorite Movies', badge: 'badge-movie' },
-    { key: 'tv', label: 'Top 4 Favorite TV Shows', badge: 'badge-tv' },
-    { key: 'book', label: 'Top 4 Favorite Books', badge: 'badge-book' }
+    { key: 'movie', label: 'Movies', badge: 'badge-movie' },
+    { key: 'tv', label: 'TV Shows', badge: 'badge-tv' },
+    { key: 'book', label: 'Books', badge: 'badge-book' }
   ];
 
   favsEl.innerHTML = mediums
@@ -1744,7 +1713,6 @@ function renderProfile() {
         <div class="fav-column-card">
           <div style="display:flex;align-items:center;justify-content:space-between;">
             <span class="medium-badge ${badge}">${escapeHtml(label)}</span>
-            <span class="section-sub">${isOwnProfile ? 'Click poster to swap' : 'Click poster for details'}</span>
           </div>
           <div class="fav-slots-grid">
             ${slotsHtml}
@@ -1762,8 +1730,7 @@ function renderProfile() {
   const maxCount = Math.max(1, ...counts);
 
   histEl.innerHTML = `
-    <p class="eyebrow">RATING SPREAD</p>
-    <h3>Half-Star Rating Distribution (0.5★ – 5.0★)</h3>
+    <h3>Rating Spread</h3>
     <div class="histogram-bars">
       ${buckets
         .map((b, i) => {
@@ -1781,14 +1748,13 @@ function renderProfile() {
   `;
 
   recentEl.innerHTML = `
-    <p class="eyebrow">RECENT DIARY SNAPSHOT</p>
-    <h3>${isOwnProfile ? 'Latest Logged Activity' : `${escapeHtml(firstName)}’s Latest Activity`}</h3>
-    <div style="display:flex;flex-direction:column;gap:0.65rem;margin-top:0.85rem;">
+    <h3>${isOwnProfile ? 'Recent Logs' : `${escapeHtml(firstName)}’s Recent Logs`}</h3>
+    <div style="display:flex;flex-direction:column;gap:0.65rem;margin-top:0.65rem;">
       ${
         myLogs.length === 0
-          ? `<p class="section-sub">No logged reviews yet for ${escapeHtml(user.name)}.</p>`
+          ? `<p class="section-sub">No logs yet.</p>`
           : myLogs
-              .slice(0, 4)
+              .slice(0, 5)
               .map((l) => {
                 const m = findMedia(l.mediaId);
                 return `
@@ -3851,20 +3817,29 @@ function switchView(viewName, options = {}) {
     renderFriendsDirectory();
   }
   uiState.activeView = viewName;
+  const primaryNavTab =
+    viewName === 'watchlist' || viewName === 'lists' ? 'diary' : viewName;
   document.querySelectorAll('.view-section').forEach((sec) => {
     sec.classList.toggle('hidden', sec.id !== `view-${viewName}`);
   });
   document.querySelectorAll('.nav-btn').forEach((btn) => {
-    const isActive = btn.dataset.navView === viewName;
+    const isActive =
+      btn.dataset.navView === viewName ||
+      (btn.id === 'nav-diary' && primaryNavTab === 'diary');
     btn.classList.toggle('is-active', isActive);
     btn.classList.toggle('active', isActive);
   });
   document.querySelectorAll('[data-mobile-nav], [data-mobile-tab]').forEach((btn) => {
     const targetView = btn.dataset.mobileNav || btn.dataset.mobileTab || btn.dataset.navView;
-    const isActive = targetView === viewName;
+    const isActive =
+      targetView === viewName ||
+      (btn.id === 'mobile-nav-diary' && primaryNavTab === 'diary');
     btn.classList.toggle('is-active', isActive);
     btn.classList.toggle('active', isActive);
     btn.setAttribute('aria-current', isActive ? 'page' : 'false');
+  });
+  document.querySelectorAll('[data-subview-pill]').forEach((pill) => {
+    pill.classList.toggle('is-active', pill.dataset.subviewPill === viewName);
   });
 }
 
